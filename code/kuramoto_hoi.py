@@ -14,7 +14,7 @@ from numpy.linalg import norm
 import xgi
 
 __all__ = [
-    "generate_q_twisted_state", 
+    "generate_q_twisted_state",
     "generate_k_clusters",
     "generate_state",
     "identify_state",
@@ -37,6 +37,7 @@ __all__ = [
     "plot_phases",
     "plot_sync",
 ]
+
 
 def generate_q_twisted_state(N, q, noise=1e-2, seed=None):
     """
@@ -61,11 +62,11 @@ def generate_q_twisted_state(N, q, noise=1e-2, seed=None):
     if seed is not None:
         np.random.seed(seed)
 
-    pertubation = noise * np.random.normal(size=N)
+    perturbation = noise * np.random.normal(size=N)
     rand_phase = np.random.random() * 2 * np.pi
 
     psi_init = 2 * np.pi * q * np.arange(1, N + 1) / N
-    psi_init += pertubation
+    psi_init += perturbation
 
     return psi_init
 
@@ -98,18 +99,20 @@ def generate_k_clusters(N, k, ps, noise=1e-2, seed=None):
         np.random.seed(seed)
 
     if len(ps) != k:
-        raise ValueError("The number of elements in ps must be equal to the number of clusters k.")
+        raise ValueError(
+            "The number of elements in ps must be equal to the number of clusters k."
+        )
 
     if not np.isclose(sum(ps), 1):
         raise ValueError("The ps must sum to one.")
 
-    pertubation = noise * np.random.normal(size=N)
+    perturbation = noise * np.random.normal(size=N)
     rand_phase = np.random.random() * 2 * np.pi
 
-    choices = rand_phase + np.linspace(0, 2*np.pi, num=k, endpoint=False)
+    choices = rand_phase + np.linspace(0, 2 * np.pi, num=k, endpoint=False)
     psi_init = np.random.choice(choices, size=N, p=ps)
 
-    psi_init += pertubation
+    psi_init += perturbation
 
     return psi_init
 
@@ -141,7 +144,7 @@ def generate_state(N, kind="random", noise=1e-2, seed=None, **kwargs):
     if seed is not None:
         np.random.seed(seed)
 
-    pertubation = noise * np.random.normal(size=N)
+    perturbation = noise * np.random.normal(size=N)
     rand_phase = np.random.random() * 2 * np.pi
 
     if kind == "sync":
@@ -156,7 +159,7 @@ def generate_state(N, kind="random", noise=1e-2, seed=None, **kwargs):
         psi_init = generate_q_twisted_state(N, **kwargs, noise=noise, seed=seed)
 
     if kind in ["sync", "splay"]:
-        psi_init += pertubation
+        psi_init += perturbation
 
     return psi_init
 
@@ -186,25 +189,28 @@ def identify_state(thetas, t=-1, atol=1e-3):
         - "other" for other or unsynchronized states.
     """
     N = thetas.shape[0]
-    
+
     R1 = order_parameter(thetas, order=1)
     R2 = order_parameter(thetas, order=2)
     R3 = order_parameter(thetas, order=3)
-    q, is_twisted = identify_winding_number(thetas, t=-1)
-    sorted_thetas = np.sort(thetas, axis=0) # sort along node axis
-    q_sorted, is_splay = identify_winding_number(sorted_thetas, t=-1)
+    diff = np.diff(thetas[:,t], append=thetas[0, t]) % (2*np.pi)
+    is_diff_zero = np.isclose(diff, 0, atol=atol) + np.isclose(diff, 2*np.pi, atol=atol)
     
-    if np.isclose(R1[t],  1, atol=atol):
+    q, is_twisted = identify_winding_number(thetas, t=-1)
+    sorted_thetas = np.sort(thetas, axis=0)  # sort along node axis
+    q_sorted, is_splay = identify_winding_number(sorted_thetas, t=-1)
+
+    if np.isclose(R1[t], 1, atol=atol) and np.all(is_diff_zero):
         return "sync"
-    elif np.isclose(R2[t],  1, atol=atol):
+    elif np.isclose(R2[t], 1, atol=atol):
         return "2-cluster"
-    elif np.isclose(R3[t],  1, atol=atol):
+    elif np.isclose(R3[t], 1, atol=atol):
         return "3-cluster"
     elif is_twisted:
         return f"{q}-twisted"
-    elif is_splay and q_sorted==1: 
+    elif is_splay and q_sorted == 1:
         return "splay"
-    else: 
+    else:
         return "other"
 
 
@@ -274,8 +280,8 @@ def order_parameter(thetas, order=1, complex=False, axis=0):
     Z = np.sum(np.exp(1j * order * thetas), axis=axis) / N
 
     if complex:
-        return Z 
-    else: 
+        return Z
+    else:
         return np.abs(Z)
 
 
@@ -375,12 +381,10 @@ def rhs_pairwise_all(t, psi, omega, k1, k2):
     sum_sin_psi = np.sum(sin_psi)
 
     # oj - oi
-    pairwise = (
-        - sum_cos_psi * sin_psi 
-        + sum_sin_psi * cos_psi  
-    )
+    pairwise = -sum_cos_psi * sin_psi + sum_sin_psi * cos_psi
 
     return omega + (k1 / N) * pairwise
+
 
 def rhs_pairwise_all_harmonic(t, psi, omega, k1, k2):
     """Right-hand side of the ODE.
@@ -445,6 +449,7 @@ def rhs_triplet_all_sym(t, psi, omega, k1, k2):
 
     return omega + (k2 / N**2) * triplet
 
+
 def rhs_triplet_all_asym(t, psi, omega, k1, k2):
     """Right-hand side of the ODE.
     All-to-all, only triplets.
@@ -470,12 +475,12 @@ def rhs_triplet_all_asym(t, psi, omega, k1, k2):
 
     # 2 oj - ok - oi
     triplet = (
-        -sum_cos_psi_sq * sum_cos_psi * sin_psi 
-        + 2 * cos_psi * np.sum(cos_psi * sin_psi) * sum_cos_psi 
-        + sum_cos_psi * sin_psi * sum_sin_psi_sq 
+        -sum_cos_psi_sq * sum_cos_psi * sin_psi
+        + 2 * cos_psi * np.sum(cos_psi * sin_psi) * sum_cos_psi
+        + sum_cos_psi * sin_psi * sum_sin_psi_sq
         - cos_psi * sum_cos_psi_sq * sum_sin_psi
         - 2 * np.sum(cos_psi * sin_psi) * sin_psi * sum_sin_psi
-        + cos_psi * sum_sin_psi_sq * sum_sin_psi 
+        + cos_psi * sum_sin_psi_sq * sum_sin_psi
     )
 
     return omega + (k2 / N**2) * triplet
@@ -491,7 +496,7 @@ def rhs_lucas(t, psi, omega, k1, k2, k1_avg, k2_avg, links, triangles):
 
     Parameters
     ----------
-    t : float 
+    t : float
         Time
     psi : array of float
         State of the N phases at time t
@@ -530,9 +535,17 @@ def rhs_lucas(t, psi, omega, k1, k2, k1_avg, k2_avg, links, triangles):
 
 
 def simulate_kuramoto(
-    S, k1, k2, omega=None, theta_0=None, t_end=100, dt=0.01, rhs=None, integrator="explicit_euler", **kwargs
+    S,
+    k1,
+    k2,
+    omega=None,
+    theta_0=None,
+    t_end=100,
+    dt=0.01,
+    rhs=None,
+    integrator="explicit_euler",
+    **kwargs,
 ):
-
     """
     Simulate the Kuramoto model on a hypergraph with links and triangles.
 
@@ -583,7 +596,8 @@ def simulate_kuramoto(
     k1_avg = H.nodes.degree(order=1).mean()
     k2_avg = H.nodes.degree(order=2).mean()
 
-    if rhs is None: 
+    if rhs is None:
+
         def rhs(t, psi, k1, k2, **kwargs):
             """Right-hand side of the differential equation"""
 
@@ -616,7 +630,9 @@ def simulate_kuramoto(
 
     if integrator == "explicit_euler":
         for it in range(1, n_t):
-            thetas[:, it] = thetas[:, it - 1] + dt * rhs(0, thetas[:, it - 1], omega, k1, k2, **kwargs)
+            thetas[:, it] = thetas[:, it - 1] + dt * rhs(
+                0, thetas[:, it - 1], omega, k1, k2, **kwargs
+            )
     else:
         thetas = solve_ivp(
             rhs,
@@ -634,7 +650,6 @@ def simulate_kuramoto(
 def simulate_kuramoto_adhikari(
     S, k1, k2, omega=None, theta_0=None, t_end=100, dt=0.01, integrator="explicit_euler"
 ):
-
     """
     Simulate the Kuramoto model on a hypergraph with links and triangles.
 
@@ -729,7 +744,6 @@ def simulate_kuramoto_adhikari(
 def simulate_kuramoto_lucas(
     S, k1, k2, omega=None, theta_0=None, t_end=100, dt=0.01, integrator="explicit_euler"
 ):
-
     """
     Simulate the Kuramoto model on a hypergraph with links and triangles.
 
@@ -830,7 +844,6 @@ def simulate_kuramoto_lucas(
 def simulate_kuramoto_lucas_nosum(
     S, k1, k2, omega=None, theta_0=None, t_end=100, dt=0.01, integrator="explicit_euler"
 ):
-
     """
     Simulate the Kuramoto model on a hypergraph with links and triangles.
 
@@ -925,6 +938,7 @@ def simulate_kuramoto_lucas_nosum(
 
     return thetas, times
 
+
 def rhs_all_noloop(t, psi):
     """Right-hand side of the differential equation"""
 
@@ -979,7 +993,7 @@ def generate_initial_conditions(N, kind="random", noise=1e-2, p2=None, seed=None
     if seed is not None:
         np.random.seed(seed)
 
-    pertubation = noise * np.random.normal(size=N)
+    perturbation = noise * np.random.normal(size=N)
     rand_phase = np.random.random() * 2 * np.pi
 
     if kind == "sync":
@@ -997,7 +1011,7 @@ def generate_initial_conditions(N, kind="random", noise=1e-2, p2=None, seed=None
         psi_init = np.random.choice([v, v + np.pi], size=N, p=[p2, 1 - p2])
 
     if kind != "random":
-        psi_init += pertubation
+        psi_init += perturbation
 
     return psi_init
 
@@ -1098,7 +1112,9 @@ def plot_phases(thetas, it, ax=None, color="b", ms=2):
     if ax is None:
         ax = plt.gca()
 
-    ax.plot(np.sin(thetas[:, it]), np.cos(thetas[:,it]), "o", c=color, ms=ms, alpha=0.3)
+    ax.plot(
+        np.sin(thetas[:, it]), np.cos(thetas[:, it]), "o", c=color, ms=ms, alpha=0.3
+    )
 
     circle = np.linspace(0, 2 * np.pi, num=100, endpoint=False)
     ax.plot(np.sin(circle), np.cos(circle), "-", c="lightgrey", zorder=-2)
