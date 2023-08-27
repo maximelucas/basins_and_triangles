@@ -27,11 +27,10 @@ __all__ = [
     "rhs_pairwise_all_harmonic",
     "rhs_triplet_all_sym",
     "rhs_triplet_all_asym",
+    "rhs_all_noloop",
+    "rhs_adhikari",
     "rhs_lucas",
     "simulate_kuramoto",
-    "simulate_kuramoto_adhikari",
-    "simulate_kuramoto_lucas",
-    "simulate_kuramoto_lucas_nosum",
     "plot_series",
     "plot_order_param",
     "plot_phases",
@@ -486,6 +485,33 @@ def rhs_triplet_all_asym(t, psi, omega, k1, k2):
     return omega + (k2 / N**2) * triplet
 
 
+def rhs_all_noloop(t, psi):
+    """Right-hand side of the differential equation"""
+
+    links = H.edges.filterby("size", 2).members()
+    triangles = H.edges.filterby("size", 3).members()
+
+    pairwise = np.zeros(N)
+    triplet = np.zeros(N)
+
+    sum_cos_psi = np.sum(np.cos(psi))
+    sum_sin_psi = np.sum(np.sin(psi))
+
+    pairwise = sum_sin_psi * np.cos(psi) - sum_cos_psi * np.sin(psi)
+
+    # oj + ok - 2oi
+    triplet = (
+        sum_cos_psi * np.cos(psi) ** 2 * sum_sin_psi
+        + 2 * np.cos(psi) * sum_sin_psi * np.sin(psi) * sum_sin_psi
+        - sum_cos_psi * np.sin(psi) ** 2 * sum_sin_psi
+        + sum_cos_psi * np.cos(psi) ** 2 * sum_sin_psi
+        + sum_cos_psi * (-2) * sum_cos_psi * np.cos(psi) * np.sin(psi)
+        + sum_cos_psi * (-1) * sum_sin_psi * np.sin(psi) ** 2
+    )
+
+    return omega + k1 * pairwise + k2 * triplet
+
+
 def rhs_lucas(t, psi, omega, k1, k2, k1_avg, k2_avg, links, triangles):
     """Right-hand side of the differential equation
 
@@ -532,6 +558,31 @@ def rhs_lucas(t, psi, omega, k1, k2, k1_avg, k2_avg, links, triangles):
     g2 = (k2 / (2 * k2_avg)) if k2_avg != 0 else 0
 
     return omega + g1 * pairwise + g2 * (triplet / 2)
+
+
+def rhs_adhikari(t, psi):
+        """Right-hand side of the differential equation"""
+
+        pairwise = np.zeros(N)
+        triplet = np.zeros(N)
+
+        for i, j in links:
+            # sin(oj - oi)
+            oi = psi[i]
+            oj = psi[j]
+            pairwise[i] += sin(oj - oi)
+            pairwise[j] += sin(oi - oj)
+
+        for i, j, k in triangles:
+            # sin(2 oj - ok - oi)
+            oi = psi[i]
+            oj = psi[j]
+            ok = psi[k]
+            triplet[i] += sin(2 * oj - ok - oi) + sin(2 * ok - oj - oi)
+            triplet[j] += sin(2 * oi - ok - oj) + sin(2 * ok - oi - oj)
+            triplet[k] += sin(2 * oj - oi - ok) + sin(2 * oi - oj - ok)
+
+        return omega + k1 * pairwise + k2 * triplet
 
 
 def simulate_kuramoto(
@@ -645,375 +696,6 @@ def simulate_kuramoto(
         ).y
 
     return thetas, times
-
-
-def simulate_kuramoto_adhikari(
-    S, k1, k2, omega=None, theta_0=None, t_end=100, dt=0.01, integrator="explicit_euler"
-):
-    """
-    Simulate the Kuramoto model on a hypergraph with links and triangles.
-
-    Parameters
-    ----------
-    S : Network object
-        Network object representing the graph.
-    omega : array-like, optional
-        Natural frequencies of each node. If not given, a random normal distribution with mean 0 and
-        standard deviation 1 is used.
-    theta_0 : array-like, optional
-        Initial phases of each node. If not given, a random phase is used.
-    k1 : float, optional
-        Coupling strength for pairwise interactions.
-    k2 : float, optional
-        Coupling strength for triplet interactions.
-    t_end : float, optional
-        End time of the integration
-    dt : float, optional
-        Time step for the simulation.
-    integrator : str, optional
-        Integration method to use. Either "explicit_euler" or any method supported by
-        scipy.integrate.solve_ivp.
-
-    Returns
-    -------
-    thetas : array-like
-        Phases of each node at each time step.
-    times : array-like
-        Time points for each time step.
-    """
-
-    H = xgi.convert_labels_to_integers(S, "label")
-    N = H.num_nodes
-
-    if omega is None:
-        omega = np.random.normal(0, 1, N)
-
-    if theta_0 is None:
-        theta_0 = np.random.random(N) * 2 * np.pi
-
-    times = np.arange(0, t_end + dt / 2, dt)
-    n_t = len(times)
-
-    links = H.edges.filterby("size", 2).members()
-    triangles = H.edges.filterby("size", 3).members()
-
-    def rhs(t, psi):
-        """Right-hand side of the differential equation"""
-
-        pairwise = np.zeros(N)
-        triplet = np.zeros(N)
-
-        for i, j in links:
-            # sin(oj - oi)
-            oi = psi[i]
-            oj = psi[j]
-            pairwise[i] += sin(oj - oi)
-            pairwise[j] += sin(oi - oj)
-
-        for i, j, k in triangles:
-            # sin(2 oj - ok - oi)
-            oi = psi[i]
-            oj = psi[j]
-            ok = psi[k]
-            triplet[i] += sin(2 * oj - ok - oi) + sin(2 * ok - oj - oi)
-            triplet[j] += sin(2 * oi - ok - oj) + sin(2 * ok - oi - oj)
-            triplet[k] += sin(2 * oj - oi - ok) + sin(2 * oi - oj - ok)
-
-        return omega + k1 * pairwise + k2 * triplet
-
-    thetas = np.zeros((N, n_t))
-    thetas[:, 0] = theta_0
-
-    if integrator == "explicit_euler":
-        for it in range(1, n_t):
-            thetas[:, it] = thetas[:, it - 1] + dt * rhs(0, thetas[:, it - 1])
-    else:
-        thetas = solve_ivp(
-            rhs,
-            [times[0], times[-1]],
-            theta_0,
-            t_eval=times,
-            method=integrator,
-            rtol=1.0e-8,
-            atol=1.0e-8,
-        ).y
-
-    return thetas, times
-
-
-def simulate_kuramoto_lucas(
-    S, k1, k2, omega=None, theta_0=None, t_end=100, dt=0.01, integrator="explicit_euler"
-):
-    """
-    Simulate the Kuramoto model on a hypergraph with links and triangles.
-
-    Parameters
-    ----------
-    S : Network object
-        Network object representing the graph.
-    omega : array-like, optional
-        Natural frequencies of each node. If not given, a random normal distribution with mean 0 and
-        standard deviation 1 is used.
-    theta_0 : array-like, optional
-        Initial phases of each node. If not given, a random phase is used.
-    k1 : float, optional
-        Coupling strength for pairwise interactions.
-    k2 : float, optional
-        Coupling strength for triplet interactions.
-    t_end : float, optional
-        End time of the integration
-    dt : float, optional
-        Time step for the simulation.
-    integrator : str, optional
-        Integration method to use. Either "explicit_euler" or any method supported by
-        scipy.integrate.solve_ivp.
-
-    Returns
-    -------
-    thetas : array-like
-        Phases of each node at each time step.
-    times : array-like
-        Time points for each time step.
-    """
-
-    H = xgi.convert_labels_to_integers(S, "label")
-    N = H.num_nodes
-
-    if omega is None:
-        omega = np.random.normal(0, 1, N)
-
-    if theta_0 is None:
-        theta_0 = np.random.random(N) * 2 * np.pi
-
-    times = np.arange(0, t_end + dt / 2, dt)
-    n_t = len(times)
-
-    links = H.edges.filterby("size", 2).members()
-    triangles = H.edges.filterby("size", 3).members()
-
-    k1_avg = H.nodes.degree(order=1).mean()
-    k2_avg = H.nodes.degree(order=2).mean()
-
-    def rhs(t, psi):
-        """Right-hand side of the differential equation"""
-
-        pairwise = np.zeros(N)
-        triplet = np.zeros(N)
-
-        for i, j in links:
-            # sin(oj - oi)
-            oi = psi[i]
-            oj = psi[j]
-            pairwise[i] += sin(oj - oi)
-            pairwise[j] += sin(oi - oj)
-
-        for i, j, k in triangles:
-            # sin(2 oj - ok - oi)
-            oi = psi[i]
-            oj = psi[j]
-            ok = psi[k]
-            triplet[i] += 2 * sin(oj + ok - 2 * oi)
-            triplet[j] += 2 * sin(oi + ok - 2 * oj)
-            triplet[k] += 2 * sin(oj + oi - 2 * ok)
-
-        g1 = k1 / k1_avg if k1_avg != 0 else 0
-        g2 = (k2 / (2 * k2_avg)) if k2_avg != 0 else 0
-
-        return omega + g1 * pairwise + g2 * (triplet / 2)
-
-    thetas = np.zeros((N, n_t))
-    thetas[:, 0] = theta_0
-
-    if integrator == "explicit_euler":
-        for it in range(1, n_t):
-            thetas[:, it] = thetas[:, it - 1] + dt * rhs(0, thetas[:, it - 1])
-    else:
-        thetas = solve_ivp(
-            rhs,
-            [times[0], times[-1]],
-            theta_0,
-            t_eval=times,
-            method=integrator,
-            rtol=1.0e-8,
-            atol=1.0e-8,
-        ).y
-
-    return thetas, times
-
-
-def simulate_kuramoto_lucas_nosum(
-    S, k1, k2, omega=None, theta_0=None, t_end=100, dt=0.01, integrator="explicit_euler"
-):
-    """
-    Simulate the Kuramoto model on a hypergraph with links and triangles.
-
-    Parameters
-    ----------
-    S : Network object
-        Network object representing the graph.
-    omega : array-like, optional
-        Natural frequencies of each node. If not given, a random normal distribution with mean 0 and
-        standard deviation 1 is used.
-    theta_0 : array-like, optional
-        Initial phases of each node. If not given, a random phase is used.
-    k1 : float, optional
-        Coupling strength for pairwise interactions.
-    k2 : float, optional
-        Coupling strength for triplet interactions.
-    t_end : float, optional
-        End time of the integration
-    dt : float, optional
-        Time step for the simulation.
-    integrator : str, optional
-        Integration method to use. Either "explicit_euler" or any method supported by
-        scipy.integrate.solve_ivp.
-
-    Returns
-    -------
-    thetas : array-like
-        Phases of each node at each time step.
-    times : array-like
-        Time points for each time step.
-    """
-
-    H = xgi.convert_labels_to_integers(S, "label")
-    N = H.num_nodes
-
-    if omega is None:
-        omega = np.random.normal(0, 1, N)
-
-    if theta_0 is None:
-        theta_0 = np.random.random(N) * 2 * np.pi
-
-    times = np.arange(0, t_end + dt / 2, dt)
-    n_t = len(times)
-
-    links = H.edges.filterby("size", 2).members()
-    triangles = H.edges.filterby("size", 3).members()
-
-    k1_avg = H.nodes.degree(order=1).mean()
-    k2_avg = H.nodes.degree(order=2).mean()
-
-    adj1 = xgi.adjacency_matrix(H, order=1)
-
-    def rhs(t, psi):
-        """Right-hand side of the differential equation"""
-
-        triplet = np.zeros(N)
-
-        pairwise = adj1.dot(np.sin(psi)) * np.cos(psi) - adj1.dot(np.cos(psi)) * np.sin(
-            psi
-        )
-
-        for i, j, k in triangles:
-            # sin(2 oj - ok - oi)
-            oi = psi[i]
-            oj = psi[j]
-            ok = psi[k]
-            triplet[i] += 2 * sin(oj + ok - 2 * oi)
-            triplet[j] += 2 * sin(oi + ok - 2 * oj)
-            triplet[k] += 2 * sin(oj + oi - 2 * ok)
-
-        g1 = k1 / k1_avg if k1_avg != 0 else 0
-        g2 = (k2 / (2 * k2_avg)) if k2_avg != 0 else 0
-
-        return omega + g1 * pairwise + g2 * (triplet / 2)
-
-    thetas = np.zeros((N, n_t))
-    thetas[:, 0] = theta_0
-
-    if integrator == "explicit_euler":
-        for it in range(1, n_t):
-            thetas[:, it] = thetas[:, it - 1] + dt * rhs(0, thetas[:, it - 1])
-    else:
-        thetas = solve_ivp(
-            rhs,
-            [times[0], times[-1]],
-            theta_0,
-            t_eval=times,
-            method=integrator,
-            rtol=1.0e-8,
-            atol=1.0e-8,
-        ).y
-
-    return thetas, times
-
-
-def rhs_all_noloop(t, psi):
-    """Right-hand side of the differential equation"""
-
-    links = H.edges.filterby("size", 2).members()
-    triangles = H.edges.filterby("size", 3).members()
-
-    pairwise = np.zeros(N)
-    triplet = np.zeros(N)
-
-    sum_cos_psi = np.sum(np.cos(psi))
-    sum_sin_psi = np.sum(np.sin(psi))
-
-    pairwise = sum_sin_psi * np.cos(psi) - sum_cos_psi * np.sin(psi)
-
-    # oj + ok - 2oi
-    triplet = (
-        sum_cos_psi * np.cos(psi) ** 2 * sum_sin_psi
-        + 2 * np.cos(psi) * sum_sin_psi * np.sin(psi) * sum_sin_psi
-        - sum_cos_psi * np.sin(psi) ** 2 * sum_sin_psi
-        + sum_cos_psi * np.cos(psi) ** 2 * sum_sin_psi
-        + sum_cos_psi * (-2) * sum_cos_psi * np.cos(psi) * np.sin(psi)
-        + sum_cos_psi * (-1) * sum_sin_psi * np.sin(psi) ** 2
-    )
-
-    return omega + k1 * pairwise + k2 * triplet
-
-
-def generate_initial_conditions(N, kind="random", noise=1e-2, p2=None, seed=None):
-    """
-    Generate initial conditions for a system of N oscillators.
-
-    Parameters
-    ----------
-    N : int
-        Number of oscillators in the system.
-    kind : str, optional
-        Kind of initial conditions to generate, by default "random".
-        "sync": synchronized state, "randsync": homogeneous random,
-        "random": completely random, "splay": splay state,
-        "rand2clust": random two-cluster state.
-    noise : float, optional
-        Level of noise to add to the initial conditions, by default 1e-2.
-    p2 : float, optional
-        Probability of choosing the second cluster in "rand2clust" option, by default None.
-
-    Returns
-    -------
-    numpy.ndarray
-        Array of shape (N,) with the initial conditions for each oscillator.
-    """
-
-    if seed is not None:
-        np.random.seed(seed)
-
-    perturbation = noise * np.random.normal(size=N)
-    rand_phase = np.random.random() * 2 * np.pi
-
-    if kind == "sync":
-        # sync
-        psi_init = (np.pi - np.arcsin((-omega + w_0) / gamma)) * np.ones(N)
-    elif kind == "randsync":  # homogeneous random
-        psi_init = rand_phase * np.ones(N)
-    elif kind == "random":  # random
-        psi_init = np.random.random(N) * 2 * np.pi
-    elif kind == "splay":  # splay state
-        psi_init = np.linspace(0, 2 * np.pi, num=N, endpoint=False)
-    elif kind == "rand2clust":
-        p2 = 0.3 if p2 is None else p2
-        v = rand_phase
-        psi_init = np.random.choice([v, v + np.pi], size=N, p=[p2, 1 - p2])
-
-    if kind != "random":
-        psi_init += perturbation
-
-    return psi_init
 
 
 def plot_series(thetas, times, ax=None, n=None):
