@@ -3,15 +3,14 @@ Functions to simulate and visualise the synchronisation
 of oscillators with group interactions
 """
 
-from math import sin, exp, cos
+from math import cos, exp, sin
 
 import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
 import seaborn as sb
-import networkx as nx
-from numpy.linalg import norm
-
 import xgi
+from numpy.linalg import norm
 
 __all__ = [
     "generate_q_twisted_state",
@@ -192,9 +191,11 @@ def identify_state(thetas, t=-1, atol=1e-3):
     R1 = order_parameter(thetas, order=1)
     R2 = order_parameter(thetas, order=2)
     R3 = order_parameter(thetas, order=3)
-    diff = np.diff(thetas[:,t], append=thetas[0, t]) % (2*np.pi)
-    is_diff_zero = np.isclose(diff, 0, atol=atol) + np.isclose(diff, 2*np.pi, atol=atol)
-    
+    diff = np.diff(thetas[:, t], append=thetas[0, t]) % (2 * np.pi)
+    is_diff_zero = np.isclose(diff, 0, atol=atol) + np.isclose(
+        diff, 2 * np.pi, atol=atol
+    )
+
     q, is_twisted = identify_winding_number(thetas, t=-1)
     sorted_thetas = np.sort(thetas, axis=0)  # sort along node axis
     q_sorted, is_splay = identify_winding_number(sorted_thetas, t=-1)
@@ -561,28 +562,28 @@ def rhs_lucas(t, psi, omega, k1, k2, k1_avg, k2_avg, links, triangles):
 
 
 def rhs_adhikari(t, psi):
-        """Right-hand side of the differential equation"""
+    """Right-hand side of the differential equation"""
 
-        pairwise = np.zeros(N)
-        triplet = np.zeros(N)
+    pairwise = np.zeros(N)
+    triplet = np.zeros(N)
 
-        for i, j in links:
-            # sin(oj - oi)
-            oi = psi[i]
-            oj = psi[j]
-            pairwise[i] += sin(oj - oi)
-            pairwise[j] += sin(oi - oj)
+    for i, j in links:
+        # sin(oj - oi)
+        oi = psi[i]
+        oj = psi[j]
+        pairwise[i] += sin(oj - oi)
+        pairwise[j] += sin(oi - oj)
 
-        for i, j, k in triangles:
-            # sin(2 oj - ok - oi)
-            oi = psi[i]
-            oj = psi[j]
-            ok = psi[k]
-            triplet[i] += sin(2 * oj - ok - oi) + sin(2 * ok - oj - oi)
-            triplet[j] += sin(2 * oi - ok - oj) + sin(2 * ok - oi - oj)
-            triplet[k] += sin(2 * oj - oi - ok) + sin(2 * oi - oj - ok)
+    for i, j, k in triangles:
+        # sin(2 oj - ok - oi)
+        oi = psi[i]
+        oj = psi[j]
+        ok = psi[k]
+        triplet[i] += sin(2 * oj - ok - oi) + sin(2 * ok - oj - oi)
+        triplet[j] += sin(2 * oi - ok - oj) + sin(2 * ok - oi - oj)
+        triplet[k] += sin(2 * oj - oi - ok) + sin(2 * oi - oj - ok)
 
-        return omega + k1 * pairwise + k2 * triplet
+    return omega + k1 * pairwise + k2 * triplet
 
 
 def simulate_kuramoto(

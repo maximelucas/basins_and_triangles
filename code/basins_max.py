@@ -17,10 +17,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sb
-from tqdm import tqdm
-
 import xgi
 from kuramoto_hoi import *
+from tqdm import tqdm
 
 sb.set_theme(style="ticks", context="notebook")
 
@@ -55,31 +54,31 @@ def nearest_neighbors(N, d, r, kind=None):
     Raises:
     ------
     """
-    
+
     r_min = int(np.ceil((d - 1) / 2))
     if r < r_min:
         raise ValueError(f"r must be >= ceil((d - 1) / 2) = {r_min} to have edges.")
-    
+
     H = xgi.Hypergraph()
-    
+
     nodes = np.arange(N)
-    
+
     edges = []
-    neighbor_rel_ids = np.concatenate((np.arange(-r, 0), np.arange(1, r+1)))
-    
+    neighbor_rel_ids = np.concatenate((np.arange(-r, 0), np.arange(1, r + 1)))
+
     for i in nodes:
-        neighbor_ids = (i + neighbor_rel_ids)
-        edge_neighbors_i = combinations(neighbor_ids, d-1)
-        if kind=="strict":
+        neighbor_ids = i + neighbor_rel_ids
+        edge_neighbors_i = combinations(neighbor_ids, d - 1)
+        if kind == "strict":
             edge_neighbors_i = [el for el in edge_neighbors_i if max(el) - min(el) <= r]
         edges_i = [(i, *comb) for comb in edge_neighbors_i]
         edges = edges + edges_i
-        
+
     edges = np.mod(edges, N)
-    
+
     H.add_nodes_from(nodes)
     H.add_edges_from(edges)
-    H.cleanup() # remove duplicate edges
+    H.cleanup()  # remove duplicate edges
     return H
 
 
@@ -103,8 +102,8 @@ def rhs_pairwise_triplet_all_asym(t, psi, omega, k1, k2):
 
     return out
 
-def rhs_23_nn_sym(t, psi, omega, k1, k2, r1, r2, adj1, triangles):
 
+def rhs_23_nn_sym(t, psi, omega, k1, k2, r1, r2, adj1, triangles):
     N = len(psi)
     sin_psi = np.sin(psi)
     cos_psi = np.cos(psi)
@@ -134,11 +133,11 @@ def rhs_23_nn_sym(t, psi, omega, k1, k2, r1, r2, adj1, triangles):
     #     - sum_cos_psi * sin_psi**2 * sum_sin_psi
     #     + 2 * cos_psi * sin_psi * sum_sin_psi**2
     # )
-    
+
     g1 = r1
     g2 = r2 * (2 * r2 - 1)
-    
-    return omega + (k1 / g1) * pairwise + (k2 / g2)  * triplet / 2
+
+    return omega + (k1 / g1) * pairwise + (k2 / g2) * triplet / 2
 
 
 # simulate system
@@ -151,12 +150,12 @@ def rhs_23_nn_sym(t, psi, omega, k1, k2, r1, r2, adj1, triangles):
 #    "k2_avg": k2_avg,
 # }
 
-def simulate_iteration(i, H, k1, k2s, omega, t_end, dt, ic, noise, rhs, **kwargs):
 
+def simulate_iteration(i, H, k1, k2s, omega, t_end, dt, ic, noise, rhs, **kwargs):
     N = len(H)
     times = np.arange(0, t_end + dt / 2, dt)
 
-    k2_thetas = np.zeros((len(k2s), N)) #, len(times)))
+    k2_thetas = np.zeros((len(k2s), N))  # , len(times)))
 
     for j, k2 in enumerate(k2s):
         psi_init = generate_state(N, kind=ic, noise=noise)
@@ -170,7 +169,7 @@ def simulate_iteration(i, H, k1, k2s, omega, t_end, dt, ic, noise, rhs, **kwargs
             t_end=t_end,
             dt=dt,
             rhs=rhs,  # rhs_pairwise_all  #rhs_triplet_all_asym
-            **kwargs
+            **kwargs,
         )
 
         k2_thetas[j] = thetas[:, -1]
@@ -187,30 +186,35 @@ def simulate_iteration(i, H, k1, k2s, omega, t_end, dt, ic, noise, rhs, **kwargs
             plt.subplots_adjust(hspace=0.5, top=0.8)
             fig.suptitle(identify_state(thetas))
             tag_params = f"ring_k1_{k1}_k2_{k2}_{i}"
-            fig_name = f"sync_{tag_params}" #_{k2s[j]}_{i}"
+            fig_name = f"sync_{tag_params}"  # _{k2s[j]}_{i}"
             plt.savefig(f"{results_dir}{fig_name}.png", dpi=300, bbox_inches="tight")
             plt.close()
-
 
     return i, k2_thetas
 
 
-
 if __name__ == "__main__":
-    
-
     parser = argparse.ArgumentParser(description="Run Kuramoto simulation")
-    parser.add_argument("--num_threads", type=int, default=4, help="Number of threads for parallelization")
-    parser.add_argument("-n", "--n_reps", type=int, default=100, help="Number of repetitions")
-    parser.add_argument("-t", "--t_end", type=float, default=300, help="Number of repetitions")
+    parser.add_argument(
+        "--num_threads",
+        type=int,
+        default=4,
+        help="Number of threads for parallelization",
+    )
+    parser.add_argument(
+        "-n", "--n_reps", type=int, default=100, help="Number of repetitions"
+    )
+    parser.add_argument(
+        "-t", "--t_end", type=float, default=300, help="Number of repetitions"
+    )
 
     args = parser.parse_args()
 
-    n_reps = args.n_reps # number of random realisations
+    n_reps = args.n_reps  # number of random realisations
 
     # generate structure
     N = 100
-    #H = xgi.complete_hypergraph(N, max_order=2)
+    # H = xgi.complete_hypergraph(N, max_order=2)
 
     r1 = 2
     r2 = 2
@@ -229,7 +233,7 @@ if __name__ == "__main__":
     noise = 1e-1  # noise strength
 
     # integration
-    t_end = args.t_end # default = 200
+    t_end = args.t_end  # default = 200
     dt = 0.01
     times = np.arange(0, t_end + dt / 2, dt)
 
@@ -244,16 +248,16 @@ if __name__ == "__main__":
     tag_params = f"ring_k1_{k1}_k2s_ic_{ic}_tend_{t_end}_nreps_{n_reps}"
 
     kwargs = {
-    #    "links": links,
+        #    "links": links,
         "triangles": triangles,
-    #    "k1_avg": k1_avg,
-    #    "k2_avg": k2_avg
+        #    "k1_avg": k1_avg,
+        #    "k2_avg": k2_avg
         "r1": r1,
         "r2": r2,
         "adj1": adj1,
-    #    "adj2": adj2,
+        #    "adj2": adj2,
     }
-    
+
     print("============")
     print("simulating..")
     print("============")
@@ -262,15 +266,20 @@ if __name__ == "__main__":
     with multiprocessing.Pool(processes=args.num_threads) as pool:
         results = []
         for i in range(n_reps):
-            results.append(pool.apply_async(simulate_iteration, (i, H, k1, k2s, omega, t_end, dt, ic, noise, rhs_23_nn_sym), kwargs))
-
+            results.append(
+                pool.apply_async(
+                    simulate_iteration,
+                    (i, H, k1, k2s, omega, t_end, dt, ic, noise, rhs_23_nn_sym),
+                    kwargs,
+                )
+            )
 
         print("============")
         print("collecting parallel results..")
         print("============")
 
         # Collect the results
-        thetas_arr = np.zeros((n_reps, len(k2s), N))#, len(times)))
+        thetas_arr = np.zeros((n_reps, len(k2s), N))  # , len(times)))
         for result in results:
             print(i)
             i, k2_thetas = result.get()
@@ -283,7 +292,9 @@ if __name__ == "__main__":
     print("saving simulations..")
     print("============")
 
-    np.save(f"../data/thetas_arr_{tag_params}.npy", thetas_arr)  # Save thetas_arr to a NPY file
+    np.save(
+        f"../data/thetas_arr_{tag_params}.npy", thetas_arr
+    )  # Save thetas_arr to a NPY file
 
     print("============")
     print("identifying states..")
@@ -293,11 +304,11 @@ if __name__ == "__main__":
     results = {}
 
     thetas_arr = thetas_arr[:, :, :, None]
-    for j, k2 in enumerate(k2s): 
-        states = [identify_state(thetas, atol=0.05) for thetas in thetas_arr[:,j]]
+    for j, k2 in enumerate(k2s):
+        states = [identify_state(thetas, atol=0.05) for thetas in thetas_arr[:, j]]
         states_unique, counts = np.unique(states, return_counts=True)
         probs = counts / n_reps
-        
+
         results[k2] = {}
         for state, prob in zip(states_unique, probs):
             results[k2][state] = prob
@@ -307,24 +318,30 @@ if __name__ == "__main__":
     print("============")
     # plot end states
     wsize = 1
-    fig, axs = plt.subplots(5, len(k2s), figsize=(len(k2s)*wsize, 5*wsize))
+    fig, axs = plt.subplots(5, len(k2s), figsize=(len(k2s) * wsize, 5 * wsize))
     for i, thetas_rep in enumerate(thetas_arr[:5]):
         for j, thetas_k in enumerate(thetas_rep):
-
-            plot_phases(thetas_k, -1, ax=axs[i,j], color="b")
-            axs[i,j].text(0, 0, f"{identify_state(thetas_k)}", fontsize="xx-small", va="center", ha="center")
+            plot_phases(thetas_k, -1, ax=axs[i, j], color="b")
+            axs[i, j].text(
+                0,
+                0,
+                f"{identify_state(thetas_k)}",
+                fontsize="xx-small",
+                va="center",
+                ha="center",
+            )
 
     for i, ax in enumerate(axs[0, :]):
         ax.set_title(f"k2={k2s[i]}")
 
-    fig_name = f"end_state_{tag_params}" #_{k2s[j]}_{i}"
+    fig_name = f"end_state_{tag_params}"  # _{k2s[j]}_{i}"
     plt.savefig(f"{results_dir}{fig_name}.png", dpi=300, bbox_inches="tight")
     plt.close()
 
     print("============")
     print("plotting summary..")
     print("============")
-    
+
     print(results)
     df = pd.DataFrame.from_dict(results, orient="index").reset_index(names="k2")
     df_long = df.melt(id_vars="k2", var_name="state", value_name="proba")
@@ -341,7 +358,7 @@ if __name__ == "__main__":
         ax=ax,
         alpha=0.7,
         style="state",
-        #hue_order=["sync", "2-cluster", "other"]
+        # hue_order=["sync", "2-cluster", "other"]
     )
 
     g.set(yscale="log")
@@ -351,7 +368,6 @@ if __name__ == "__main__":
 
     title = f"ring, {ic} ic, {n_reps} reps \n rhs_23_nn_sym"
     ax.set_title(title)
-
 
     sb.despine()
     ax.set_ylim(ymax=1.1)
@@ -363,4 +379,3 @@ if __name__ == "__main__":
     print("============")
     print("done..")
     print("============")
-
