@@ -124,14 +124,20 @@ def generate_state(N, kind="random", noise=1e-2, seed=None, **kwargs):
     N : int
         Number of oscillators in the system.
     kind : str, optional
-        Kind of initial conditions to generate, by default "random".
-        "sync": synchronized state, "randsync": homogeneous random,
-        "random": completely random, "splay": splay state,
-        "rand2clust": random two-cluster state.
+        Kind of state to generate, by default "random".
+        * "sync": full sync, all identical phases, 
+        * "random": uniform random on [0, 2pi[, 
+        * "splay": splay state, evenly spaced on [0, 2pi[,
+        * "k-cluster": random k-cluster state,
+        * "q-twisted": q-twisted state
     noise : float, optional
         Level of noise to add to the initial conditions, by default 1e-2.
-    p2 : float, optional
-        Probability of choosing the second cluster in "rand2clust" option, by default None.
+    seed : int or None (default)
+        Seed for the random number generator.
+    **kwargs
+        Keyword arguments to be passed to `generate_k_clusters()` or 
+        `generate_q_twisted_state()`.
+
 
     Returns
     -------
@@ -155,6 +161,8 @@ def generate_state(N, kind="random", noise=1e-2, seed=None, **kwargs):
         psi_init = generate_k_clusters(N, **kwargs, noise=noise, seed=seed)
     elif kind == "q-twisted":
         psi_init = generate_q_twisted_state(N, **kwargs, noise=noise, seed=seed)
+    else: 
+        raise ValueError("Unknown kind.")
 
     if kind in ["sync", "splay"]:
         psi_init += perturbation
@@ -214,7 +222,7 @@ def identify_state(thetas, t=-1, atol=1e-3):
         return "other"
 
 
-def identify_winding_number(thetas, t):
+def identify_winding_number(thetas, t, atol=1e-1):
     """
     Check if twisted state and identify its winding number.
 
@@ -246,7 +254,7 @@ def identify_winding_number(thetas, t):
 
     q = np.sum(diff)
     w_no = round(q / (2 * np.pi))
-    is_twisted_state = norm(diff - np.mean(diff)) < 1e-1
+    is_twisted_state = norm(diff - np.mean(diff)) < atol
 
     return w_no, is_twisted_state
 
