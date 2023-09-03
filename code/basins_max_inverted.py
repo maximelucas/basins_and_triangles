@@ -83,6 +83,62 @@ def nearest_neighbors(N, d, r, kind=None):
     return H
 
 
+def di_nearest_neigbors(N, d, r):
+    """
+    Create a d-uniform hypergraph representing nearest neighbor relationships.
+
+    Parameters
+    ----------
+    N : int
+        The total number of nodes.
+
+    d : int
+        Size of hyperedges
+
+    r : int
+        The range of neighbors to consider. Neighbors within the range [-r, r]
+        (excluding the node itself) will be connected.
+
+    Returns
+    -------
+    xgi.Hypergraph
+        A hypergraph object representing the nearest neighbor relationships.
+    """
+    
+    DH = xgi.DiHypergraph()
+    nodes = np.arange(N)
+
+    edges = []
+    neighbor_rel_ids = np.concatenate((np.arange(-r, 0), np.arange(1, r + 1)))
+
+    for i in nodes:
+        neighbor_ids = i + neighbor_rel_ids
+        edge_neighbors_i = combinations(neighbor_ids, d - 1)
+        edges_i = [[list(np.mod(comb, N)), [i]] for comb in edge_neighbors_i]
+        edges = edges + edges_i
+
+    #edges = np.mod(edges, N)
+
+    DH.add_nodes_from(nodes)
+    DH.add_edges_from(edges)
+    DH.cleanup()  # remove duplicate
+
+    return DH
+
+
+def ring_dihypergraph(N, r1, r2):
+
+    H2 = di_nearest_neigbors(N, d=3, r=r2)
+    H1 = di_nearest_neigbors(N, d=2, r=r1)
+    
+    DH = xgi.DiHypergraph()
+    DH.add_nodes_from(H1.nodes)
+    DH.add_edges_from(H1.edges.dimembers())
+    DH.add_edges_from(H2.edges.dimembers())
+    
+    return DH
+
+
 # dynamics
 def rhs_pairwise_triplet_all_sym(t, psi, omega, k1, k2):
     out = (
@@ -139,6 +195,62 @@ def rhs_23_nn_sym(t, psi, omega, k1, k2, r1, r2, adj1, triangles):
     g2 = r2 * (2 * r2 - 1)
 
     return omega + (k1 / g1) * pairwise + (k2 / g2) * triplet / 2
+
+
+def rhs_dimax(t, psi, omega, k1, k2, r1, r2, dilinks, ditriangles, print_i=None):
+    """
+    RHS
+    
+    Parameters
+    ----------
+    k1, k2 : floats
+        Pairwise and triplet coupling strengths
+    r1, r2 : int
+        Pairwise and triplet nearest neighbour ranges
+    adj1 : ndarray, shape (N, N)
+        Adjacency matrix of order 1
+    triangles: list of sets
+        List of unique triangles
+    
+    """
+        
+    N = len(psi)
+
+    pairwise = np.zeros(N)
+    
+    for senders, receiver in dilinks:
+        # sin(oj - oi)
+        senders = list(senders)
+        receiver = list(receiver)
+        i = receiver
+        j = senders
+        oi = psi[i]
+        oj = psi[j]
+        pairwise[i] += sin(oj - oi)
+
+    triplet = np.zeros(N)
+    
+    #print(len(triangles))
+    for senders, receiver in ditriangles:
+        # sin(2 oj - ok - oi)
+        senders = list(senders)
+        receiver = list(receiver)
+        i = receiver
+        j = senders[0]
+        k = senders[1]
+        oi = psi[i]
+        oj = psi[j]
+        ok = psi[k]
+        triplet[i] += 2 * sin(oj + ok - 2 * oi)
+        
+        #if print_i in [i, j, k]:
+        #    print(i, j, k, "\t", f"{2 * sin(oj + ok - 2 * oi) * k2 / (r2 * (2 * r2 - 1)):.3f}")
+
+    g1 = r1
+    g2 = r2 * (2 * r2 - 1)
+
+    return omega + (k1 / g1) * pairwise + (k2 / g2) * triplet
+
 
 
 # simulate system
@@ -220,9 +332,7 @@ if __name__ == "__main__":
     r1 = 2
     r2 = 2
 
-    H2 = nearest_neighbors(N, d=3, r=r2, kind=None)
-    H1 = nearest_neighbors(N, d=2, r=r1, kind=None)
-    H = H1 << H2
+    H = ring_dihypergraph(N, r1, r2)
     # define parameters
 
     # dynamical
@@ -239,14 +349,14 @@ if __name__ == "__main__":
     times = np.arange(0, t_end + dt / 2, dt)
 
     # may be used in the simulation function
-    links = H.edges.filterby("size", 2).members()
-    triangles = H.edges.filterby("size", 3).members()
-    adj1 = xgi.adjacency_matrix(H, order=1)
-    adj2 = xgi.adjacency_matrix(H, order=2)
-    k1_avg = H.nodes.degree(order=1).mean()
-    k2_avg = H.nodes.degree(order=2).mean()
+    dilinks = H.edges.filterby("size", 2).dimembers()
+    ditriangles = H.edges.filterby("size", 3).dimembers()
+    #adj1 = xgi.adjacency_matrix(H, order=1)
+    #adj2 = xgi.adjacency_matrix(H, order=2)
+    #k1_avg = H.nodes.degree(order=1).mean()
+    #k2_avg = H.nodes.degree(order=2).mean()
 
-    tag_params = f"ring_k1_{k1}_k2s_ic_{ic}_tend_{t_end}_nreps_{n_reps}"
+    tag_params = f"ring_k1_{k1}_k2s_ic_{ic}_tend_{t_end}_nreps_{n_reps}_di"
 
     # create directory for this run
     run_dir = f"{results_dir}run_{tag_params}/"
@@ -258,13 +368,13 @@ if __name__ == "__main__":
 
 
     kwargs = {
-        #    "links": links,
-        "triangles": triangles,
+        "dilinks": dilinks,
+        "ditriangles": ditriangles,
         #    "k1_avg": k1_avg,
         #    "k2_avg": k2_avg
         "r1": r1,
         "r2": r2,
-        "adj1": adj1,
+        #"adj1": adj1,
         #    "adj2": adj2,
     }
 
@@ -279,7 +389,7 @@ if __name__ == "__main__":
             results.append(
                 pool.apply_async(
                     simulate_iteration,
-                    (i, H, k1, k2, omega, t_end, dt, ic, noise, rhs_23_nn_sym, n_reps, run_dir),
+                    (i, H, k1, k2, omega, t_end, dt, ic, noise, rhs_dimax, n_reps, run_dir),
                     kwargs,
                 )
             )
@@ -383,7 +493,7 @@ if __name__ == "__main__":
     sb.despine()
     ax.set_ylim(ymax=1.1)
 
-    fig_name = f"basin_size_a2a_ic_{ic}_nreps_{n_reps}_rhs_pairwise_triplet_all_asym"
+    fig_name = f"basin_size_a2a_ic_{ic}_nreps_{n_reps}_rhs_23_all_sym_di"
 
     plt.savefig(f"{run_dir}{fig_name}.png", dpi=300, bbox_inches="tight")
 
