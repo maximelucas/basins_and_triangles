@@ -95,7 +95,7 @@ def simulate_iteration(i, H, k1, k2, omega, t_end, dt, ic, noise, rhs, n_reps, r
         psi_init = generate_state(N, kind=ic, noise=noise)
 
         thetas, times = simulate_kuramoto(
-            H=H,
+            H,
             k1=k1,
             k2=k2,
             omega=omega,
@@ -208,7 +208,8 @@ if __name__ == "__main__":
             results.append(
                 pool.apply_async(
                     simulate_iteration,
-                    (i, H, k1, k2, omega, t_end, dt, ic, noise, rhs_oneloop_nb, n_reps, run_dir, (omega, k1, k2, r1, r2)),
+                    (i, H, k1, k2, omega, t_end, dt, ic, noise, rhs_oneloop_nb, n_reps, run_dir),
+                    kwargs,
                 )
             )
 
