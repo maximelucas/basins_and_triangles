@@ -111,11 +111,11 @@ def plot_phases(thetas, it, ax=None, color="b", ms=2):
         ax = plt.gca()
 
     ax.plot(
-        np.sin(thetas[:, it]), np.cos(thetas[:, it]), "o", c=color, ms=ms, alpha=0.3
+        np.cos(thetas[:, it]), np.sin(thetas[:, it]), "o", c=color, ms=ms, alpha=0.3
     )
 
     circle = np.linspace(0, 2 * np.pi, num=100, endpoint=False)
-    ax.plot(np.sin(circle), np.cos(circle), "-", c="lightgrey", zorder=-2)
+    ax.plot(np.cos(circle), np.sin(circle), "-", c="lightgrey", zorder=-2)
     sb.despine(ax=ax, left=True, bottom=True)
     ax.set_yticks([])
     ax.set_xticks([])
