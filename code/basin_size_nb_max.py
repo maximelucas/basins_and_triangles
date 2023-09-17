@@ -159,7 +159,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     n_reps = args.n_reps  # number of random realisations
-    integrator = args.integrator
 
     # generate structure
     N = 100
@@ -174,7 +173,7 @@ if __name__ == "__main__":
     # dynamical
     k1 = 1  # pairwise coupling strength
     k2s = np.arange(0, 4.5, 0.25)  # triplet coupling strength
-    omega = 1 * np.ones(N)  # np.random.normal(size=N) #1 * np.ones(N)
+    omega = 0 #1 * np.ones(N)  # np.random.normal(size=N) #1 * np.ones(N)
 
     ic = "random"  # initial condition type, see below
     noise = 1e-1  # noise strength
@@ -185,6 +184,7 @@ if __name__ == "__main__":
     times = np.arange(0, t_end + dt / 2, dt)
 
     t_eval = True  # integrate at all above timepoints
+    integrator = args.integrator
     options = {"atol": 1e-8, "rtol": 1e-8}
 
     # may be used in the simulation function

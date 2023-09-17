@@ -49,16 +49,16 @@ def identify_state(thetas, t=-1, atol=1e-3):
     sorted_thetas = np.sort(thetas, axis=0)  # sort along node axis
     q_sorted, is_splay = identify_winding_number(sorted_thetas, t=-1)
 
-    if np.isclose(R1[t], 1, atol=atol) and np.all(is_diff_zero):
+    if is_twisted:
+        return f"{q}-twisted"
+    elif is_splay and q_sorted == 1:
+        return "splay"
+    elif np.isclose(R1[t], 1, atol=atol) and np.all(is_diff_zero):
         return "sync"
     elif np.isclose(R2[t], 1, atol=atol):
         return "2-cluster"
     elif np.isclose(R3[t], 1, atol=atol):
         return "3-cluster"
-    elif is_twisted:
-        return f"{q}-twisted"
-    elif is_splay and q_sorted == 1:
-        return "splay"
     else:
         return "other"
 
