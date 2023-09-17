@@ -1,5 +1,5 @@
 # max 
-*.npy # avoid large results files
+*.npy
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
