@@ -7,6 +7,7 @@ from numpy.linalg import norm
 
 __all__ = [
     "identify_state",
+    "identify_k_clusters",
     "identify_winding_number",
     "order_parameter",
 ]
@@ -106,7 +107,11 @@ def identify_k_clusters(thetas, k, t, atol=1e-2):
         end = idcs[i] + 1 if i < n_changes else None
         clusters.append(psi[start:end])
 
+    if len(clusters) < k:
+        return False, []
+
     is_k_clusters = True  # changed below if False
+    sizes = [0] * k
 
     for i in range(n_changes + 1):
         if np.mean(np.diff(clusters[i])) > atol:  # cluster is not compact
@@ -117,9 +122,10 @@ def identify_k_clusters(thetas, k, t, atol=1e-2):
         if abs(dist_ij - dist) > atol:
             is_k_clusters = False  # clusters have wrong distance between them
 
+    print(n_clust, len(clusters))
     if n_clust == len(clusters):
         sizes = [len(cluster) / N for cluster in clusters]
-    elif n_clust == clusters - 1:
+    elif n_clust == len(clusters) - 1:
         sizes = [len(cluster) / N for cluster in clusters[:-1]]
         sizes[0] += len(clusters[-1])  # 0th and last clusters are the same
     else:
