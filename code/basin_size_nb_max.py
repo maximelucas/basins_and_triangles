@@ -364,3 +364,6 @@ if __name__ == "__main__":
 
     # Print or save the elapsed time
     print(f"Execution time: {formatted_time}")
+
+    with open(f"{run_dir}execution_report.txt", "w") as f:
+        f.write(f"Execution time: {formatted_time}")
