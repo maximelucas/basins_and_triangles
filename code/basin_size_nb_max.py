@@ -85,7 +85,7 @@ def rhs_oneloop_nb(t, theta, omega, k1, k2, r1, r2):
     return (k1 / r1) * pairwise + k2 / (r2 * (2 * r2 - 1)) * triplets
 
 
-def simulate_iteration(i, H, k1, k2, omega, t_end, dt, ic, noise, rhs, n_reps, run_dir="", args=None):
+def simulate_iteration(i, H, k1, k2, omega, t_end, dt, ic, noise, rhs, n_reps, run_dir="", **kwargs):
     N = len(H)
     times = np.arange(0, t_end + dt / 2, dt)
 
@@ -94,20 +94,20 @@ def simulate_iteration(i, H, k1, k2, omega, t_end, dt, ic, noise, rhs, n_reps, r
     for j in range(n_reps):
         psi_init = generate_state(N, kind=ic, noise=noise)
 
-        #thetas, times = simulate_kuramoto(
-        #    H,
-        #    k1,
-        #    k2,
-        #    omega=omega,
-        #    theta_0=psi_init,
-        #    t_end=t_end,
-        #    dt=dt,
-        #    rhs=rhs,  # rhs_pairwise_all  #rhs_triplet_all_asym
-        #    **kwargs,
-        #)
-        solx = solve_ivp(rhs, [0, t_end], psi_init, args=args)
-        times = solx.t
-        thetas = solx.y
+        thetas, times = simulate_kuramoto(
+            H=H,
+            k1=k1,
+            k2=k2,
+            omega=omega,
+            theta_0=psi_init,
+            t_end=t_end,
+            dt=dt,
+            rhs=rhs,  # rhs_pairwise_all  #rhs_triplet_all_asym
+            **kwargs,
+        )
+        #solx = solve_ivp(rhs, [0, t_end], psi_init, args=args)
+        #times = solx.t
+        #thetas = solx.y
 
         nrep_thetas[j] = thetas[:, -1]
 
