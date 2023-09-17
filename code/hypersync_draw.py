@@ -1,16 +1,10 @@
-
 """
 Functions to visualise sync in coupled oscillators
 """
 
-from math import cos, exp, sin
-
 import matplotlib.pyplot as plt
-import networkx as nx
 import numpy as np
 import seaborn as sb
-import xgi
-from numpy.linalg import norm
 
 __all__ = [
     "plot_series",

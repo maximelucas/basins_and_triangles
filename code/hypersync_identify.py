@@ -1,24 +1,15 @@
-
 """
 Functions to identify states in coupled oscillators
 """
 
-
-from math import cos, exp, sin
-
-import matplotlib.pyplot as plt
-import networkx as nx
 import numpy as np
-import seaborn as sb
-import xgi
 from numpy.linalg import norm
-
 
 __all__ = [
     "identify_state",
     "identify_winding_number",
     "order_parameter",
- ]
+]
 
 
 def identify_state(thetas, t=-1, atol=1e-3):
@@ -45,7 +36,6 @@ def identify_state(thetas, t=-1, atol=1e-3):
         - "splay" for splay synchronization.
         - "other" for other or unsynchronized states.
     """
-    N = thetas.shape[0]
 
     R1 = order_parameter(thetas, order=1)
     R2 = order_parameter(thetas, order=2)
@@ -95,7 +85,6 @@ def identify_winding_number(thetas, t, atol=1e-1):
         False otherwise.
     """
     thetas = thetas % (2 * np.pi)  # ensure it's mod 2 pi
-    N = len(thetas)
 
     diff = np.diff(thetas[:, t], prepend=thetas[-1, t])
 

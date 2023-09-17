@@ -2,16 +2,7 @@
 Functions to generate states in coupling phase oscillators
 """
 
-from math import cos, exp, sin
-
-import matplotlib.pyplot as plt
-import networkx as nx
 import numpy as np
-import seaborn as sb
-import xgi
-from numpy.linalg import norm
-
-
 
 __all__ = [
     "generate_q_twisted_state",
@@ -47,6 +38,7 @@ def generate_q_twisted_state(N, q, noise=1e-2, seed=None):
     rand_phase = np.random.random() * 2 * np.pi
 
     psi_init = 2 * np.pi * q * np.arange(1, N + 1) / N
+    psi_init += rand_phase
     psi_init += perturbation
 
     return psi_init
@@ -108,8 +100,8 @@ def generate_state(N, kind="random", noise=1e-2, seed=None, **kwargs):
         Number of oscillators in the system.
     kind : str, optional
         Kind of state to generate, by default "random".
-        * "sync": full sync, all identical phases, 
-        * "random": uniform random on [0, 2pi[, 
+        * "sync": full sync, all identical phases,
+        * "random": uniform random on [0, 2pi[,
         * "splay": splay state, evenly spaced on [0, 2pi[,
         * "k-cluster": random k-cluster state,
         * "q-twisted": q-twisted state
@@ -118,7 +110,7 @@ def generate_state(N, kind="random", noise=1e-2, seed=None, **kwargs):
     seed : int or None (default)
         Seed for the random number generator.
     **kwargs
-        Keyword arguments to be passed to `generate_k_clusters()` or 
+        Keyword arguments to be passed to `generate_k_clusters()` or
         `generate_q_twisted_state()`.
 
 
@@ -144,7 +136,7 @@ def generate_state(N, kind="random", noise=1e-2, seed=None, **kwargs):
         psi_init = generate_k_clusters(N, **kwargs, noise=noise, seed=seed)
     elif kind == "q-twisted":
         psi_init = generate_q_twisted_state(N, **kwargs, noise=noise, seed=seed)
-    else: 
+    else:
         raise ValueError("Unknown kind.")
 
     if kind in ["sync", "splay"]:
