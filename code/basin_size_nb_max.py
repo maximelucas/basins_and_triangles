@@ -10,6 +10,7 @@ import argparse
 import multiprocessing
 import shutil
 import sys
+from datetime import datetime
 from itertools import combinations
 from math import sin
 from pathlib import Path
@@ -130,6 +131,10 @@ def simulate_iteration(i, H, k1, k2, omega, t_end, dt, ic, noise, rhs, n_reps, r
 
 
 if __name__ == "__main__":
+
+    # Record the start time
+    start_time = datetime.now()
+
     parser = argparse.ArgumentParser(description="Run Kuramoto simulation")
     parser.add_argument(
         "--num_threads",
@@ -313,3 +318,21 @@ if __name__ == "__main__":
     print("============")
     print("done..")
     print("============")
+
+    # Record the end time
+    end_time = datetime.now()
+
+    # Calculate the elapsed time
+    elapsed_time = end_time - start_time
+
+    # Extract days, hours, and minutes
+    days = elapsed_time.days
+    seconds = elapsed_time.total_seconds()
+    hours, seconds = divmod(seconds, 3600)
+    minutes, seconds = divmod(seconds, 60)
+
+    # Format the elapsed time
+    formatted_time = f"{days} days {hours} hours {minutes} minutes {seconds:.0f} seconds"
+
+    # Print or save the elapsed time
+    print(f"Execution time: {formatted_time}")
