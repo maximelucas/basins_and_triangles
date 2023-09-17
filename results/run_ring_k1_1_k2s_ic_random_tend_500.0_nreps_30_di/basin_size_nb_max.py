@@ -9,9 +9,7 @@ Call with
 import argparse
 import multiprocessing
 import shutil
-import sys
 from datetime import datetime
-from itertools import combinations
 from math import sin
 from pathlib import Path
 
@@ -20,10 +18,11 @@ import numpy as np
 import pandas as pd
 import seaborn as sb
 import xgi
-from kuramoto_hoi import *
+from hypersync_draw import *
+from hypersync_generate import *
+from hypersync_identify import *
+from hypersync_integrate import *
 from numba import jit
-from scipy.integrate import solve_ivp
-from tqdm import tqdm
 
 sb.set_theme(style="ticks", context="notebook")
 
@@ -33,19 +32,6 @@ data_dir = "../data/"
 Path(results_dir).mkdir(parents=True, exist_ok=True)
 Path(data_dir).mkdir(parents=True, exist_ok=True)
 
-
-
-
-
-# simulate system
-
-# simulate
-# kwargs = {
-#    "links": links,
-#    "triangles": triangles,
-#    "k1_avg": k1_avg,
-#    "k2_avg": k2_avg,
-# }
 
 @jit(nopython=True)
 def rhs_oneloop_nb(t, theta, omega, k1, k2, r1, r2):
@@ -59,7 +45,7 @@ def rhs_oneloop_nb(t, theta, omega, k1, k2, r1, r2):
     K1, K2 : int
         Pairwise and triplet nearest neighbour ranges
     """
-    
+
     N = len(theta)
 
     pairwise = np.zeros(N)
@@ -70,7 +56,6 @@ def rhs_oneloop_nb(t, theta, omega, k1, k2, r1, r2):
     idx_1 = range(-r1, r1 + 1)
 
     for ii in range(N):
-
         for jj in idx_1:  # pairwise
             jjj = (ii + jj) % N
             pairwise[ii] += sin(theta[jjj] - theta[ii])
@@ -85,7 +70,24 @@ def rhs_oneloop_nb(t, theta, omega, k1, k2, r1, r2):
     return (k1 / r1) * pairwise + k2 / (r2 * (2 * r2 - 1)) * triplets
 
 
-def simulate_iteration(i, H, k1, k2, omega, t_end, dt, ic, noise, rhs, n_reps, run_dir="", **kwargs):
+def simulate_iteration(
+    i,
+    H,
+    k1,
+    k2,
+    omega,
+    t_end,
+    dt,
+    ic,
+    noise,
+    rhs,
+    integrator,
+    args,
+    t_eval,
+    n_reps,
+    run_dir="",
+    **options,
+):
     N = len(H)
     times = np.arange(0, t_end + dt / 2, dt)
 
@@ -103,11 +105,13 @@ def simulate_iteration(i, H, k1, k2, omega, t_end, dt, ic, noise, rhs, n_reps, r
             t_end=t_end,
             dt=dt,
             rhs=rhs,  # rhs_pairwise_all  #rhs_triplet_all_asym
-            **kwargs,
+            integrator=integrator,
+            args=args,
+            t_eval=False,
         )
-        #solx = solve_ivp(rhs, [0, t_end], psi_init, args=args)
-        #times = solx.t
-        #thetas = solx.y
+        # solx = solve_ivp(rhs, [0, t_end], psi_init, args=args)
+        # times = solx.t
+        # thetas = solx.y
 
         nrep_thetas[j] = thetas[:, -1]
 
@@ -131,7 +135,6 @@ def simulate_iteration(i, H, k1, k2, omega, t_end, dt, ic, noise, rhs, n_reps, r
 
 
 if __name__ == "__main__":
-
     # Record the start time
     start_time = datetime.now()
 
@@ -146,12 +149,17 @@ if __name__ == "__main__":
         "-n", "--n_reps", type=int, default=100, help="Number of repetitions"
     )
     parser.add_argument(
-        "-t", "--t_end", type=float, default=300, help="Number of repetitions"
+        "-t", "--t_end", type=float, default=300, help="End time"
+    )
+
+    parser.add_argument(
+        "-i", "--integrator", type=str, default="RK45", help="ODE integrator"
     )
 
     args = parser.parse_args()
 
     n_reps = args.n_reps  # number of random realisations
+    integrator = args.integrator
 
     # generate structure
     N = 100
@@ -176,13 +184,16 @@ if __name__ == "__main__":
     dt = 0.01
     times = np.arange(0, t_end + dt / 2, dt)
 
+    t_eval = True  # integrate at all above timepoints
+    options = {"atol": 1e-8, "rtol": 1e-8}
+
     # may be used in the simulation function
-    #dilinks = H.edges.filterby("size", 2).dimembers()
-    #ditriangles = H.edges.filterby("size", 3).dimembers()
-    #adj1 = xgi.adjacency_matrix(H, order=1)
-    #adj2 = xgi.adjacency_matrix(H, order=2)
-    #k1_avg = H.nodes.degree(order=1).mean()
-    #k2_avg = H.nodes.degree(order=2).mean()
+    # dilinks = H.edges.filterby("size", 2).dimembers()
+    # ditriangles = H.edges.filterby("size", 3).dimembers()
+    # adj1 = xgi.adjacency_matrix(H, order=1)
+    # adj2 = xgi.adjacency_matrix(H, order=2)
+    # k1_avg = H.nodes.degree(order=1).mean()
+    # k2_avg = H.nodes.degree(order=2).mean()
 
     tag_params = f"ring_k1_{k1}_k2s_ic_{ic}_tend_{t_end}_nreps_{n_reps}_di"
 
@@ -190,7 +201,7 @@ if __name__ == "__main__":
     run_dir = f"{results_dir}run_{tag_params}/"
     Path(run_dir).mkdir(parents=True, exist_ok=True)
 
-    # copy current script 
+    # copy current script
     current_script_path = Path(__file__).resolve()
     shutil.copy2(current_script_path, run_dir)
 
@@ -202,14 +213,29 @@ if __name__ == "__main__":
     with multiprocessing.Pool(processes=args.num_threads) as pool:
         results = []
         for i, k2 in enumerate(k2s):
-
-            kwargs = {"r1": r1,"r2": r2}
+            args = (r1, r2)
 
             results.append(
                 pool.apply_async(
                     simulate_iteration,
-                    (i, H, k1, k2, omega, t_end, dt, ic, noise, rhs_oneloop_nb, n_reps, run_dir),
-                    kwargs,
+                    (
+                        i,
+                        H,
+                        k1,
+                        k2,
+                        omega,
+                        t_end,
+                        dt,
+                        ic,
+                        noise,
+                        rhs_oneloop_nb,
+                        integrator,
+                        args,
+                        t_eval,
+                        n_reps,
+                        run_dir,
+                    ),
+                    options,
                 )
             )
 
@@ -242,7 +268,7 @@ if __name__ == "__main__":
     # identify states and count their occurrences
     results = {}
 
-    thetas_arr = thetas_arr.swapaxes(0, 1) # get (n_rep, k2s)
+    thetas_arr = thetas_arr.swapaxes(0, 1)  # get (n_rep, k2s)
     thetas_arr = thetas_arr[:, :, :, None]
     for j, k2 in enumerate(k2s):
         states = [identify_state(thetas, atol=0.05) for thetas in thetas_arr[:, j]]
@@ -333,7 +359,9 @@ if __name__ == "__main__":
     minutes, seconds = divmod(seconds, 60)
 
     # Format the elapsed time
-    formatted_time = f"{days} days {hours} hours {minutes} minutes {seconds:.0f} seconds"
+    formatted_time = (
+        f"{days} days {hours} hours {minutes} minutes {seconds:.0f} seconds"
+    )
 
     # Print or save the elapsed time
     print(f"Execution time: {formatted_time}")
