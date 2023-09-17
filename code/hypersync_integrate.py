@@ -326,7 +326,7 @@ def rhs_adhikari(t, psi, omega, k1, k2, links, triangles):
 
 
 def simulate_kuramoto(
-    S,
+    H,
     k1,
     k2,
     omega=None,
@@ -335,16 +335,18 @@ def simulate_kuramoto(
     dt=0.01,
     rhs=None,
     integrator="explicit_euler",
-    **kwargs,
+    args=None,
+    t_eval=False,
+    **options
 ):
     """
     Simulate the Kuramoto model on a hypergraph with links and triangles.
 
     Parameters
     ----------
-    S : Network object
-        Network object representing the graph.
-    omega : array-like, optional
+    H : Hypergraph
+        Hypergraph on which to simulate coupled oscillators
+    omega : float or array-like, optional
         Natural frequencies of each node. If not given, a random normal distribution with mean 0 and
         standard deviation 1 is used.
     theta_0 : array-like, optional
@@ -369,7 +371,7 @@ def simulate_kuramoto(
         Time points for each time step.
     """
 
-    H = xgi.convert_labels_to_integers(S, "label")
+    H = xgi.convert_labels_to_integers(H, "label")
     N = H.num_nodes
 
     if omega is None:
@@ -384,13 +386,15 @@ def simulate_kuramoto(
     times = np.arange(0, t_end + dt / 2, dt)
     n_t = len(times)
 
+    t_eval = None if not t_eval else times
+
     thetas = np.zeros((N, n_t))
     thetas[:, 0] = theta_0
 
     if integrator == "explicit_euler":
         for it in range(1, n_t):
             thetas[:, it] = thetas[:, it - 1] + dt * rhs(
-                0, thetas[:, it - 1], omega, k1, k2, **kwargs
+                0, thetas[:, it - 1], omega, k1, k2, *args
             )
     else:
         thetas = solve_ivp(
@@ -399,8 +403,8 @@ def simulate_kuramoto(
             y0=theta_0,
             t_eval=times,
             method=integrator,
-            rtol=1.0e-8,
-            atol=1.0e-8,
+            args=(omega, k1, k2, *args),
+            **options
         ).y
 
     return thetas, times
