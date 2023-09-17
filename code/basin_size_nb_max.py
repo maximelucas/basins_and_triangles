@@ -77,10 +77,10 @@ def rhs_oneloop_nb(t, theta, omega, k1, k2, r1, r2):
 
         for jj in idx_2:  # triplet
             for kk in idx_2:
-                if jj < kk:
+                if jj != kk:
                     jjj = (ii + jj) % N
                     kkk = (ii + kk) % N
-                    triplets[ii] += 2 * sin(theta[kkk] + theta[jjj] - 2 * theta[ii])
+                    triplets[ii] += sin(2 * theta[kkk] - theta[jjj] - theta[ii])
 
     return (k1 / r1) * pairwise + k2 / (r2 * (2 * r2 - 1)) * triplets
 
@@ -111,7 +111,7 @@ def simulate_iteration(i, H, k1, k2, omega, t_end, dt, ic, noise, rhs, n_reps, r
 
         nrep_thetas[j] = thetas[:, -1]
 
-        if j <= 5:
+        if (j <= 5) or ("cluster" in identify_state(thetas)):
             fig, axs = plot_sync(thetas, times)
 
             axs[0, 1].set_title(f"$t={times[0]}$s", fontsize="x-small")
