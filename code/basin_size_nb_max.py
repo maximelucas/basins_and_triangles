@@ -62,10 +62,11 @@ def rhs_oneloop_nb(t, theta, omega, k1, k2, r1, r2):
 
         for jj in idx_2:  # triplet
             for kk in idx_2:
-                if jj != kk:
+                if jj < kk: # because coupling function is symmetric in j and k
                     jjj = (ii + jj) % N
                     kkk = (ii + kk) % N
-                    triplets[ii] += sin(2 * theta[kkk] - theta[jjj] - theta[ii])
+                    # x2 to count triangles in both directions
+                    triplets[ii] += 2 * sin(theta[kkk] + theta[jjj] - 2 * theta[ii])
 
     return (k1 / r1) * pairwise + k2 / (r2 * (2 * r2 - 1)) * triplets
 
@@ -109,13 +110,11 @@ def simulate_iteration(
             args=args,
             t_eval=False,
         )
-        # solx = solve_ivp(rhs, [0, t_end], psi_init, args=args)
-        # times = solx.t
-        # thetas = solx.y
 
         nrep_thetas[j] = thetas[:, -1]
 
         if (j <= 5) or ("cluster" in identify_state(thetas)):
+
             fig, axs = plot_sync(thetas, times)
 
             axs[0, 1].set_title(f"$t={times[0]}$s", fontsize="x-small")
@@ -183,7 +182,7 @@ if __name__ == "__main__":
     dt = 0.01
     times = np.arange(0, t_end + dt / 2, dt)
 
-    t_eval = True  # integrate at all above timepoints
+    t_eval = False  # integrate at all above timepoints
     integrator = args.integrator
     options = {"atol": 1e-8, "rtol": 1e-8}
 
