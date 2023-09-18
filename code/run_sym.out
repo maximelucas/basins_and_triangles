@@ -1,0 +1,120 @@
+============
+simulating..
+============
+============
+collecting parallel results..
+============
+17
+2 2
+2 2
+3 3
+3 3
+3 3
+2 2
+2 2
+2 2
+3 3
+3 3
+3 3
+2 2
+2 2
+2 2
+3 3
+0
+3 3
+2 2
+3 3
+1
+3 3
+3 3
+3 3
+2
+3
+3 3
+2 3
+3 3
+4
+3 3
+3 3
+3 3
+5
+2 2
+6
+3 3
+7
+3 3
+3 3
+3 3
+3 3
+8
+2 2
+3 3
+9
+2 2
+10
+2 2
+11
+2 2
+12
+13
+14
+15
+16
+============
+done..
+============
+============
+saving simulations..
+============
+============
+identifying states..
+============
+2 2
+2 2
+2 2
+2 2
+2 2
+2 2
+3 3
+3 3
+3 3
+3 3
+3 3
+3 3
+2 2
+3 3
+2 2
+3 3
+3 3
+3 3
+3 3
+2 2
+3 3
+3 3
+3 3
+3 3
+2 2
+3 3
+3 3
+3 3
+3 3
+3 3
+3 3
+3 3
+2 2
+2 2
+2 3
+3 3
+2 2
+2 2
+============
+plotting end states..
+============
+============
+plotting summary..
+============
+{0.0: {'-1-twisted': 0.2338, '-2-twisted': 0.0933, '-3-twisted': 0.0209, '-4-twisted': 0.002, '0-twisted': 0.3065, '1-twisted': 0.2305, '2-twisted': 0.0908, '3-twisted': 0.0191, '4-twisted': 0.0026, '5-twisted': 0.0004, '6-twisted': 0.0001}, 0.25: {'-1-twisted': 0.2324, '-2-twisted': 0.0913, '-3-twisted': 0.0225, '-4-twisted': 0.0027, '-5-twisted': 0.0004, '0-twisted': 0.2981, '1-twisted': 0.2337, '2-twisted': 0.0947, '3-twisted': 0.0212, '4-twisted': 0.0027, '5-twisted': 0.0002, '6-twisted': 0.0001}, 0.5: {'-1-twisted': 0.2287, '-2-twisted': 0.0921, '-3-twisted': 0.021, '-4-twisted': 0.0027, '-5-twisted': 0.0001, '0-twisted': 0.3058, '1-twisted': 0.2332, '2-twisted': 0.0933, '3-twisted': 0.0208, '4-twisted': 0.0022, '5-twisted': 0.0001}, 0.75: {'-1-twisted': 0.2299, '-2-twisted': 0.1001, '-3-twisted': 0.0243, '-4-twisted': 0.0027, '-5-twisted': 0.0002, '0-twisted': 0.2937, '1-twisted': 0.2192, '2-twisted': 0.102, '3-twisted': 0.0248, '4-twisted': 0.003, '5-twisted': 0.0001}, 1.0: {'-1-twisted': 0.2118, '-2-twisted': 0.1115, '-3-twisted': 0.0403, '-4-twisted': 0.0072, '-5-twisted': 0.0008, '0-twisted': 0.2568, '1-twisted': 0.2092, '2-twisted': 0.1154, '3-twisted': 0.0402, '4-twisted': 0.0064, '5-twisted': 0.0004}, 1.25: {'-1-twisted': 0.2089, '-2-twisted': 0.1158, '-3-twisted': 0.0451, '-4-twisted': 0.0097, '-5-twisted': 0.0007, '0-twisted': 0.2416, '1-twisted': 0.2064, '2-twisted': 0.1196, '3-twisted': 0.0404, '4-twisted': 0.0109, '5-twisted': 0.0008, '6-twisted': 0.0001}, 1.5: {'-1-twisted': 0.1993, '-2-twisted': 0.1139, '-3-twisted': 0.0427, '-4-twisted': 0.0109, '-5-twisted': 0.0009, '-6-twisted': 0.0004, '0-twisted': 0.2407, '1-twisted': 0.2008, '2-twisted': 0.1214, '3-twisted': 0.0463, '4-twisted': 0.0121, '5-twisted': 0.0021, '6-twisted': 0.0001, 'other': 0.0084}, 1.75: {'-1-twisted': 0.1443, '-2-twisted': 0.0687, '-3-twisted': 0.0423, '-4-twisted': 0.0186, '-5-twisted': 0.0017, '-6-twisted': 0.0009, '0-twisted': 0.1272, '1-twisted': 0.1476, '2-twisted': 0.0764, '3-twisted': 0.0396, '4-twisted': 0.0164, '5-twisted': 0.001, '6-twisted': 0.0004, '7-twisted': 0.0001, 'other': 0.3148}, 2.0: {'-1-twisted': 0.0945, '-2-twisted': 0.0863, '-3-twisted': 0.0451, '-4-twisted': 0.0225, '-5-twisted': 0.0064, '-6-twisted': 0.0003, '0-twisted': 0.0901, '1-twisted': 0.0914, '2-twisted': 0.0893, '3-twisted': 0.0448, '4-twisted': 0.0232, '5-twisted': 0.0078, '6-twisted': 0.0001, 'other': 0.3982}, 2.25: {'-1-twisted': 0.0707, '-2-twisted': 0.0818, '-3-twisted': 0.0449, '-4-twisted': 0.0252, '-5-twisted': 0.0103, '-6-twisted': 0.0001, '0-twisted': 0.0651, '1-twisted': 0.0723, '2-twisted': 0.0757, '3-twisted': 0.0456, '4-twisted': 0.0229, '5-twisted': 0.0107, '6-twisted': 0.0001, '7-twisted': 0.0001, 'other': 0.4744, 'sync': 0.0001}, 2.5: {'-1-twisted': 0.048, '-2-twisted': 0.0645, '-3-twisted': 0.044, '-4-twisted': 0.0224, '-5-twisted': 0.0124, '-6-twisted': 0.0001, '-7-twisted': 0.0001, '0-twisted': 0.0466, '1-twisted': 0.0534, '2-twisted': 0.0602, '3-twisted': 0.0398, '4-twisted': 0.0252, '5-twisted': 0.0107, 'other': 0.5726}, 2.75: {'-1-twisted': 0.0337, '-2-twisted': 0.0496, '-3-twisted': 0.0365, '-4-twisted': 0.0241, '-5-twisted': 0.0105, '-6-twisted': 0.0004, '-7-twisted': 0.0002, '0-twisted': 0.0294, '1-twisted': 0.0327, '2-twisted': 0.0504, '3-twisted': 0.0354, '4-twisted': 0.0229, '5-twisted': 0.0108, '6-twisted': 0.0003, 'other': 0.6631}, 3.0: {'-1-twisted': 0.0191, '-2-twisted': 0.0243, '-3-twisted': 0.0331, '-4-twisted': 0.0205, '-5-twisted': 0.0106, '-6-twisted': 0.0003, '0-twisted': 0.0192, '1-twisted': 0.0219, '2-twisted': 0.0261, '3-twisted': 0.0313, '4-twisted': 0.0212, '5-twisted': 0.012, 'other': 0.7604}, 3.25: {'-1-twisted': 0.0133, '-2-twisted': 0.0181, '-3-twisted': 0.0258, '-4-twisted': 0.0198, '-5-twisted': 0.0108, '-6-twisted': 0.0002, '0-twisted': 0.0125, '1-twisted': 0.0126, '2-twisted': 0.0166, '3-twisted': 0.0241, '4-twisted': 0.0196, '5-twisted': 0.0108, '6-twisted': 0.0003, 'other': 0.8155}, 3.5: {'-1-twisted': 0.0087, '-2-twisted': 0.0104, '-3-twisted': 0.0181, '-4-twisted': 0.0141, '-5-twisted': 0.0107, '-6-twisted': 0.0001, '0-twisted': 0.0096, '1-twisted': 0.0087, '2-twisted': 0.0091, '3-twisted': 0.018, '4-twisted': 0.0151, '5-twisted': 0.0094, '6-twisted': 0.0003, 'other': 0.8677}, 3.75: {'-1-twisted': 0.0035, '-2-twisted': 0.0054, '-3-twisted': 0.0128, '-4-twisted': 0.0093, '-5-twisted': 0.0066, '-6-twisted': 0.0004, '0-twisted': 0.0043, '1-twisted': 0.0051, '2-twisted': 0.0052, '3-twisted': 0.0124, '4-twisted': 0.0115, '5-twisted': 0.0069, '6-twisted': 0.0003, 'other': 0.9163}, 4.0: {'-1-twisted': 0.0024, '-2-twisted': 0.0036, '-3-twisted': 0.0078, '-4-twisted': 0.0072, '-5-twisted': 0.0053, '-6-twisted': 0.0002, '0-twisted': 0.0029, '1-twisted': 0.0022, '2-twisted': 0.0024, '3-twisted': 0.0075, '4-twisted': 0.0089, '5-twisted': 0.0055, '6-twisted': 0.0003, 'other': 0.9438}, 4.25: {'-1-twisted': 0.0018, '-2-twisted': 0.0018, '-3-twisted': 0.006, '-4-twisted': 0.0049, '-5-twisted': 0.0036, '-6-twisted': 0.0003, '0-twisted': 0.0021, '1-twisted': 0.0014, '2-twisted': 0.0024, '3-twisted': 0.0064, '4-twisted': 0.0059, '5-twisted': 0.0036, '6-twisted': 0.0001, 'other': 0.9597}}
+============
+done..
+============
+Execution time: 0 days 6.0 hours 0.0 minutes 58 seconds
