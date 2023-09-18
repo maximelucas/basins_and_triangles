@@ -122,7 +122,6 @@ def identify_k_clusters(thetas, k, t, atol=1e-2):
         if abs(dist_ij - dist) > atol:
             is_k_clusters = False  # clusters have wrong distance between them
 
-    print(n_clust, len(clusters))
     if n_clust == len(clusters):
         sizes = [len(cluster) / N for cluster in clusters]
     elif n_clust == len(clusters) - 1:
