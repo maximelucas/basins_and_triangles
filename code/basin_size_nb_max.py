@@ -142,7 +142,7 @@ def simulate_iteration(
             theta_0=psi_init,
             t_end=t_end,
             dt=dt,
-            rhs=rhs,  # rhs_pairwise_all  #rhs_triplet_all_asym
+            rhs=rhs,
             integrator=integrator,
             args=args,
             t_eval=False,
@@ -203,12 +203,15 @@ if __name__ == "__main__":
     r1 = 2
     r2 = 2
 
+    suffix = "di" # "SC"
+
     H = xgi.trivial_hypergraph(N)
+
     # define parameters
 
     # dynamical
     k1 = 1  # pairwise coupling strength
-    k2s = np.arange(0, 4.5, 0.25)  # triplet coupling strength
+    k2s = np.arange(0, 10.5, 0.5)  # triplet coupling strength
     omega = 0 #1 * np.ones(N)  # np.random.normal(size=N) #1 * np.ones(N)
 
     ic = "random"  # initial condition type, see below
@@ -231,7 +234,7 @@ if __name__ == "__main__":
     # k1_avg = H.nodes.degree(order=1).mean()
     # k2_avg = H.nodes.degree(order=2).mean()
 
-    tag_params = f"ring_k1_{k1}_k2s_ic_{ic}_tend_{t_end}_nreps_{n_reps}_SC"
+    tag_params = f"ring_k1_{k1}_k2s_ic_{ic}_tend_{t_end}_nreps_{n_reps}_{suffix}"
 
     # create directory for this run
     run_dir = f"{results_dir}run_{tag_params}/"
@@ -264,7 +267,7 @@ if __name__ == "__main__":
                         dt,
                         ic,
                         noise,
-                        rhs_oneloop_SC_nb, # change rhs here
+                        rhs_oneloop_nb, # change rhs here
                         integrator,
                         args,
                         t_eval,
@@ -368,13 +371,13 @@ if __name__ == "__main__":
 
     ax.set_xlabel("k2, triplet coupling strength")
 
-    title = f"ring SC, {ic} ic, {n_reps} reps"
+    title = f"ring {suffix}, {ic} ic, {n_reps} reps"
     ax.set_title(title)
 
     sb.despine()
     ax.set_ylim(ymax=1.1)
 
-    fig_name = f"basin_size_ring_SC_ic_{ic}_nreps_{n_reps}"
+    fig_name = f"basin_size_ring_{suffix}_ic_{ic}_nreps_{n_reps}"
 
     plt.savefig(f"{run_dir}{fig_name}.png", dpi=300, bbox_inches="tight")
 
