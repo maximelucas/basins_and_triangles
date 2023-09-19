@@ -50,8 +50,19 @@ def identify_state(thetas, t=-1, atol=1e-3):
     sorted_thetas = np.sort(thetas, axis=0)  # sort along node axis
     q_sorted, is_splay = identify_winding_number(sorted_thetas, t=-1)
 
-    is_2clust, sizes2 = identify_k_clusters(thetas, k=2, t=-1, atol=1e-2)
-    is_3clust, sizes3 = identify_k_clusters(thetas, k=3, t=-1, atol=1e-2)
+    try:
+        is_2clust, sizes2 = identify_k_clusters(thetas, k=2, t=-1, atol=1e-2)
+    except Exception as err:
+        is_2clust = False
+        sizes2 = []
+        print(err)
+
+    try:
+        is_3clust, sizes3 = identify_k_clusters(thetas, k=3, t=-1, atol=1e-2)
+    except Exception as err:
+        is_3clust = False
+        sizes3 = []
+        print(err)
 
     if is_twisted:
         return f"{q}-twisted"
