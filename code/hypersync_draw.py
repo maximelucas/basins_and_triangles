@@ -5,12 +5,15 @@ Functions to visualise sync in coupled oscillators
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sb
+import xgi
 
 __all__ = [
     "plot_series",
     "plot_order_param",
     "plot_phases",
     "plot_sync",
+    "plot_phases_line",
+    "plot_phases_ring",
 ]
 
 
@@ -89,7 +92,7 @@ def plot_order_param(thetas, times, ax=None, order=1, color="r", ls="-"):
 
 def plot_phases(thetas, it, ax=None, color="b", ms=2):
     """
-    Plot the phase plot of oscillators at time `it` on a circle.
+    Plot the phase of oscillators at time `it` on a circle.
 
     Parameters
     ----------
@@ -123,6 +126,90 @@ def plot_phases(thetas, it, ax=None, color="b", ms=2):
 
     return ax
 
+def plot_phases_line(thetas, it=-1, ax=None, **kwargs):
+    """
+    Plot the phases of oscillators at time `it` in order of node index.
+
+    Parameters
+    ----------
+    thetas : np.ndarray
+        The phase of each oscillator over time. Shape is (N, T).
+    it : int
+        The time index to plot the phase plot for.
+    ax : plt.Axes, optional
+        The axes to plot on, by default None.
+    **kwargs: dict
+        All arguments to pass to matplotlib's plot
+
+    Returns
+    -------
+    plt.Axes
+        The plot's axes.
+    """
+
+    if ax is None:
+        ax = plt.gca()
+
+    psi = thetas[:, it]
+
+    ax.plot(psi % (2*np.pi), "o", **kwargs)
+
+    sb.despine()
+
+    ax.set_ylim([-0.1, 2*np.pi+0.1])
+    ax.set_yticks([0, np.pi, 2*np.pi])
+    ax.set_yticklabels([0, r"$\pi$", r"$2\pi$"])
+
+    ax.set_xlabel("Node index")
+    ax.set_ylabel("Phase")
+
+    return ax
+
+
+def plot_phases_ring(H, thetas, it=-1, ax=None, colorbar=True, **kwargs):
+
+    """
+    Plot the phase of oscillators at time `it` on a circle.
+
+    The phase values are represented by the node color, and the
+    oscillators are positioned evenly spaced on the circle.
+
+    Parameters
+    ----------
+    H : xgi Hypergraph
+        Hypergraph to plot    
+    thetas : np.ndarray
+        The phase of each oscillator over time. Shape is (N, T).
+    it : int
+        The time index to plot the phase plot for. Default: -1.
+    ax : plt.Axes, optional
+        The axes to plot on, by default None.
+    colorbar : bool, optional
+        If True (default), plot a colorbar.
+    **kwargs: dict
+        All arguments to pass to xgi's `draw_nodes`.
+
+    Returns
+    -------
+    plt.Axes
+        The plot's axes.
+    """
+    if ax is None:
+        ax = plt.gca()
+
+    pos = xgi.circular_layout(H)
+
+    psi = thetas[:, it] % (2*np.pi)
+
+    ax, im = xgi.draw_nodes(H, pos=pos, ax=ax, node_fc=psi, node_lw=0., vmin=0, vmax=2*np.pi, node_fc_cmap="twilight", **kwargs)
+
+    ax.set_aspect("equal")
+    if colorbar:
+        cbar = plt.colorbar(im)
+        cbar.set_ticks(ticks=[0, np.pi, 2*np.pi], labels=[0, r"$\pi$", r"$2\pi$"])
+
+    return ax, im
+
 
 def plot_sync(thetas, times, n=None):
     """
@@ -130,7 +217,8 @@ def plot_sync(thetas, times, n=None):
 
     Parameters
     ----------
-    thetas : np.ndarray
+            Hypergraph to plot
+            thetas : np.ndarray
         The phase of each oscillator over time. Shape is (N, T).
     times : np.ndarray
         The time stamps for the `thetas` data.

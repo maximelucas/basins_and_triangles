@@ -248,7 +248,7 @@ if __name__ == "__main__":
 
     # dynamical
     k1 = 1  # pairwise coupling strength
-    k2s = np.arange(0, 4.5, 0.25)  # triplet coupling strength
+    k2s = np.arange(0, 10.5, 0.5)  # triplet coupling strength
     omega = 0 #1 * np.ones(N)  # np.random.normal(size=N) #1 * np.ones(N)
 
     ic = "random"  # initial condition type, see below
