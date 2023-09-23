@@ -10,6 +10,7 @@ import argparse
 import multiprocessing
 import shutil
 from datetime import datetime
+from itertools import combinations
 from math import sin
 from pathlib import Path
 
@@ -69,6 +70,50 @@ def rhs_oneloop_nb(t, theta, omega, k1, k2, r1, r2):
                     triplets[ii] += 2 * sin(theta[kkk] + theta[jjj] - 2 * theta[ii])
 
     return (k1 / r1) * pairwise + k2 / (r2 * (2 * r2 - 1)) * triplets
+
+
+@jit(nopython=True)
+def rhs_oneloop_nb_quadruplet(t, theta, omega, k1, k2, r1, r2):
+    """
+    RHS
+
+    Parameters
+    ----------
+    sigma : float
+        Triplet coupling strength
+    K1, K2 : int
+        Pairwise and triplet nearest neighbour ranges
+    """
+
+    N = len(theta)
+
+    pairwise = np.zeros(N)
+    triplets = np.zeros(N)
+
+    # triadic coupling
+    idx_2 = list(range(-r2, 0)) + list(range(1, r2 + 1))
+    idx_1 = range(-r1, r1 + 1)
+
+    for ii in range(N):
+        for jj in idx_1:  # pairwise
+            jjj = (ii + jj) % N
+            pairwise[ii] += sin(theta[jjj] - theta[ii])
+
+        for jj in idx_2:  # triplet
+            for kk in idx_2:
+                for ll in idx_2:
+                    if jj != kk and jj != ll and kk != ll: 
+                        jjj = (ii + jj) % N
+                        kkk = (ii + kk) % N
+                        lll = (ll + jj) % N
+                        # x2 to count triangles in both directions
+                        triplets[ii] += sin(theta[lll] + theta[kkk] + theta[jjj] - 3 * theta[ii])
+
+    g2 = (1/3) * r2 * (2 * r2 - 2) * (2 * r2 - 1) # (2 * r2) choose 3
+    return (k1 / r1) * pairwise + k2 / g2 * triplets
+
+
+
 
 @jit(nopython=True)
 def rhs_oneloop_nb_asym(t, theta, omega, k1, k2, r1, r2):
@@ -142,7 +187,113 @@ def rhs_oneloop_SC_nb(t, theta, omega, k1, k2, r1, r2):
                     # x2 to count triangles in both directions
                     triplets[ii] += 2 * sin(theta[kkk] + theta[jjj] - 2 * theta[ii])
 
-    return (k1 / r1) * pairwise + k2 / (r2 * (2 * r2 - 1)) * triplets
+    g2 = (r2 * (2 * r2 - 1)) / 2 # divide by to remove undirected
+    return (k1 / r1) * pairwise + k2 / g2 * triplets
+
+def di_nearest_neigbors(N, d, r):
+    """
+    Create a d-uniform hypergraph representing nearest neighbor relationships.
+
+    Parameters
+    ----------
+    N : int
+        The total number of nodes.
+
+    d : int
+        Size of hyperedges
+
+    r : int
+        The range of neighbors to consider. Neighbors within the range [-r, r]
+        (excluding the node itself) will be connected.
+
+    Returns
+    -------
+    xgi.Hypergraph
+        A hypergraph object representing the nearest neighbor relationships.
+    """
+    
+    DH = xgi.DiHypergraph()
+    nodes = np.arange(N)
+
+    edges = []
+    neighbor_rel_ids = np.concatenate((np.arange(-r, 0), np.arange(1, r + 1)))
+
+    for i in nodes:
+        neighbor_ids = i + neighbor_rel_ids
+        edge_neighbors_i = combinations(neighbor_ids, d - 1)
+        edges_i = [[list(np.mod(comb, N)), [i]] for comb in edge_neighbors_i]
+        edges = edges + edges_i
+
+    #edges = np.mod(edges, N)
+
+    DH.add_nodes_from(nodes)
+    DH.add_edges_from(edges)
+    DH.cleanup()  # remove duplicate
+
+    return DH
+
+def ring_dihypergraph(N, r1, r2):
+
+    H2 = di_nearest_neigbors(N, d=3, r=r2)
+    H1 = di_nearest_neigbors(N, d=2, r=r1)
+    
+    DH = xgi.DiHypergraph()
+    DH.add_nodes_from(H1.nodes)
+    DH.add_edges_from(H1.edges.dimembers())
+    DH.add_edges_from(H2.edges.dimembers())
+    
+    return DH
+
+def rhs_diHG(t, psi, omega, k1, k2, r1, r2, dilinks, ditriangles):
+    """
+    RHS
+    
+    Parameters
+    ----------
+    k1, k2 : floats
+        Pairwise and triplet coupling strengths
+    r1, r2 : int
+        Pairwise and triplet nearest neighbour ranges
+    adj1 : ndarray, shape (N, N)
+        Adjacency matrix of order 1
+    triangles: list of sets
+        List of unique triangles
+    
+    """
+        
+    N = len(psi)
+
+    pairwise = np.zeros(N)
+    
+    for senders, receiver in dilinks:
+        # sin(oj - oi)
+        senders = list(senders)
+        receiver = list(receiver)
+        i = receiver
+        j = senders
+        oi = psi[i]
+        oj = psi[j]
+        pairwise[i] += sin(oj - oi)
+
+    triplet = np.zeros(N)
+    
+    #print(len(triangles))
+    for senders, receiver in ditriangles:
+        # sin(oj + ok - 2 oi)
+        senders = list(senders)
+        receiver = list(receiver)
+        i = receiver
+        j = senders[0]
+        k = senders[1]
+        oi = psi[i]
+        oj = psi[j]
+        ok = psi[k]
+        triplet[i] += 2 * sin(oj + ok - 2 * oi)
+        
+    g1 = r1
+    g2 = r2 * (2 * r2 - 1)
+
+    return omega + (k1 / g1) * pairwise + (k2 / g2) * triplet
 
 
 def simulate_iteration(
@@ -242,13 +393,17 @@ if __name__ == "__main__":
 
     suffix = "di_asym" # "SC"
 
-    H = xgi.trivial_hypergraph(N)
+    #H = xgi.trivial_hypergraph(N)
+    H = ring_dihypergraph(N, r1, r2)
+
+    dilinks = H.edges.filterby("size", 2).dimembers()
+    ditriangles = H.edges.filterby("size", 3).dimembers()
 
     # define parameters
 
     # dynamical
     k1 = 1  # pairwise coupling strength
-    k2s = np.arange(0, 10.5, 0.5)  # triplet coupling strength
+    k2s = np.arange(0, 9.5, 0.5)  # triplet coupling strength
     omega = 0 #1 * np.ones(N)  # np.random.normal(size=N) #1 * np.ones(N)
 
     ic = "random"  # initial condition type, see below
@@ -262,14 +417,6 @@ if __name__ == "__main__":
     t_eval = False  # integrate at all above timepoints
     integrator = args.integrator
     options = {"atol": 1e-8, "rtol": 1e-8}
-
-    # may be used in the simulation function
-    # dilinks = H.edges.filterby("size", 2).dimembers()
-    # ditriangles = H.edges.filterby("size", 3).dimembers()
-    # adj1 = xgi.adjacency_matrix(H, order=1)
-    # adj2 = xgi.adjacency_matrix(H, order=2)
-    # k1_avg = H.nodes.degree(order=1).mean()
-    # k2_avg = H.nodes.degree(order=2).mean()
 
     tag_params = f"ring_k1_{k1}_k2s_ic_{ic}_tend_{t_end}_nreps_{n_reps}_{suffix}"
 
@@ -289,7 +436,7 @@ if __name__ == "__main__":
     with multiprocessing.Pool(processes=args.num_threads) as pool:
         results = []
         for i, k2 in enumerate(k2s):
-            args = (r1, r2)
+            args = (r1, r2, dilinks, ditriangles)
 
             results.append(
                 pool.apply_async(
@@ -304,7 +451,7 @@ if __name__ == "__main__":
                         dt,
                         ic,
                         noise,
-                        rhs_oneloop_nb_asym, # change rhs here
+                        rhs_diHG, # change rhs here
                         integrator,
                         args,
                         t_eval,

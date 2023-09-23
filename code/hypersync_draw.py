@@ -201,7 +201,7 @@ def plot_phases_ring(H, thetas, it=-1, ax=None, colorbar=True, **kwargs):
 
     psi = thetas[:, it] % (2*np.pi)
 
-    ax, im = xgi.draw_nodes(H, pos=pos, ax=ax, node_fc=psi, node_lw=0., vmin=0, vmax=2*np.pi, node_fc_cmap="twilight", **kwargs)
+    ax, im = xgi.draw_nodes(H, pos=pos, ax=ax, node_fc=psi, vmin=0, vmax=2*np.pi, node_fc_cmap="twilight", **kwargs)
 
     ax.set_aspect("equal")
     if colorbar:
