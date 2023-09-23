@@ -63,7 +63,7 @@ def rhs_oneloop_nb(t, theta, omega, k1, k2, r1, r2):
 
         for jj in idx_2:  # triplet
             for kk in idx_2:
-                if jj < kk: # because coupling function is symmetric in j and k
+                if jj < kk:  # because coupling function is symmetric in j and k
                     jjj = (ii + jj) % N
                     kkk = (ii + kk) % N
                     # x2 to count triangles in both directions
@@ -102,17 +102,17 @@ def rhs_oneloop_nb_quadruplet(t, theta, omega, k1, k2, r1, r2):
         for jj in idx_2:  # triplet
             for kk in idx_2:
                 for ll in idx_2:
-                    if jj != kk and jj != ll and kk != ll: 
+                    if jj != kk and jj != ll and kk != ll:
                         jjj = (ii + jj) % N
                         kkk = (ii + kk) % N
                         lll = (ll + jj) % N
                         # x2 to count triangles in both directions
-                        triplets[ii] += sin(theta[lll] + theta[kkk] + theta[jjj] - 3 * theta[ii])
+                        triplets[ii] += sin(
+                            theta[lll] + theta[kkk] + theta[jjj] - 3 * theta[ii]
+                        )
 
-    g2 = (1/3) * r2 * (2 * r2 - 2) * (2 * r2 - 1) # (2 * r2) choose 3
+    g2 = (1 / 3) * r2 * (2 * r2 - 2) * (2 * r2 - 1)  # (2 * r2) choose 3
     return (k1 / r1) * pairwise + k2 / g2 * triplets
-
-
 
 
 @jit(nopython=True)
@@ -152,6 +152,7 @@ def rhs_oneloop_nb_asym(t, theta, omega, k1, k2, r1, r2):
 
     return (k1 / r1) * pairwise + k2 / (r2 * (2 * r2 - 1)) * triplets
 
+
 @jit(nopython=True)
 def rhs_oneloop_SC_nb(t, theta, omega, k1, k2, r1, r2):
     """
@@ -181,14 +182,17 @@ def rhs_oneloop_SC_nb(t, theta, omega, k1, k2, r1, r2):
 
         for jj in idx_2:  # triplet
             for kk in idx_2:
-                if (jj < kk) and (kk - jj) <= r2: # because coupling function is symmetric in j and k
+                if (jj < kk) and (
+                    kk - jj
+                ) <= r2:  # because coupling function is symmetric in j and k
                     jjj = (ii + jj) % N
                     kkk = (ii + kk) % N
                     # x2 to count triangles in both directions
                     triplets[ii] += 2 * sin(theta[kkk] + theta[jjj] - 2 * theta[ii])
 
-    g2 = (r2 * (2 * r2 - 1)) / 2 # divide by to remove undirected
+    g2 = (r2 * (2 * r2 - 1)) / 2  # divide by to remove undirected
     return (k1 / r1) * pairwise + k2 / g2 * triplets
+
 
 def di_nearest_neigbors(N, d, r):
     """
@@ -211,7 +215,7 @@ def di_nearest_neigbors(N, d, r):
     xgi.Hypergraph
         A hypergraph object representing the nearest neighbor relationships.
     """
-    
+
     DH = xgi.DiHypergraph()
     nodes = np.arange(N)
 
@@ -224,7 +228,7 @@ def di_nearest_neigbors(N, d, r):
         edges_i = [[list(np.mod(comb, N)), [i]] for comb in edge_neighbors_i]
         edges = edges + edges_i
 
-    #edges = np.mod(edges, N)
+    # edges = np.mod(edges, N)
 
     DH.add_nodes_from(nodes)
     DH.add_edges_from(edges)
@@ -232,22 +236,23 @@ def di_nearest_neigbors(N, d, r):
 
     return DH
 
-def ring_dihypergraph(N, r1, r2):
 
+def ring_dihypergraph(N, r1, r2):
     H2 = di_nearest_neigbors(N, d=3, r=r2)
     H1 = di_nearest_neigbors(N, d=2, r=r1)
-    
+
     DH = xgi.DiHypergraph()
     DH.add_nodes_from(H1.nodes)
     DH.add_edges_from(H1.edges.dimembers())
     DH.add_edges_from(H2.edges.dimembers())
-    
+
     return DH
+
 
 def rhs_diHG(t, psi, omega, k1, k2, r1, r2, dilinks, ditriangles):
     """
     RHS
-    
+
     Parameters
     ----------
     k1, k2 : floats
@@ -258,13 +263,13 @@ def rhs_diHG(t, psi, omega, k1, k2, r1, r2, dilinks, ditriangles):
         Adjacency matrix of order 1
     triangles: list of sets
         List of unique triangles
-    
+
     """
-        
+
     N = len(psi)
 
     pairwise = np.zeros(N)
-    
+
     for senders, receiver in dilinks:
         # sin(oj - oi)
         senders = list(senders)
@@ -276,8 +281,8 @@ def rhs_diHG(t, psi, omega, k1, k2, r1, r2, dilinks, ditriangles):
         pairwise[i] += sin(oj - oi)
 
     triplet = np.zeros(N)
-    
-    #print(len(triangles))
+
+    # print(len(triangles))
     for senders, receiver in ditriangles:
         # sin(oj + ok - 2 oi)
         senders = list(senders)
@@ -289,7 +294,7 @@ def rhs_diHG(t, psi, omega, k1, k2, r1, r2, dilinks, ditriangles):
         oj = psi[j]
         ok = psi[k]
         triplet[i] += 2 * sin(oj + ok - 2 * oi)
-        
+
     g1 = r1
     g2 = r2 * (2 * r2 - 1)
 
@@ -339,7 +344,6 @@ def simulate_iteration(
         nrep_thetas[j] = thetas[:, -1]
 
         if (j <= 5) or ("cluster" in identify_state(thetas)):
-
             fig, axs = plot_sync(thetas, times)
 
             axs[0, 1].set_title(f"$t={times[0]}$s", fontsize="x-small")
@@ -372,9 +376,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-n", "--n_reps", type=int, default=100, help="Number of repetitions"
     )
-    parser.add_argument(
-        "-t", "--t_end", type=float, default=300, help="End time"
-    )
+    parser.add_argument("-t", "--t_end", type=float, default=300, help="End time")
 
     parser.add_argument(
         "-i", "--integrator", type=str, default="RK45", help="ODE integrator"
@@ -391,9 +393,9 @@ if __name__ == "__main__":
     r1 = 2
     r2 = 2
 
-    suffix = "di_asym" # "SC"
+    suffix = "di_asym"  # "SC"
 
-    #H = xgi.trivial_hypergraph(N)
+    # H = xgi.trivial_hypergraph(N)
     H = ring_dihypergraph(N, r1, r2)
 
     dilinks = H.edges.filterby("size", 2).dimembers()
@@ -404,7 +406,7 @@ if __name__ == "__main__":
     # dynamical
     k1 = 1  # pairwise coupling strength
     k2s = np.arange(0, 9.5, 0.5)  # triplet coupling strength
-    omega = 0 #1 * np.ones(N)  # np.random.normal(size=N) #1 * np.ones(N)
+    omega = 0  # 1 * np.ones(N)  # np.random.normal(size=N) #1 * np.ones(N)
 
     ic = "random"  # initial condition type, see below
     noise = 1e-1  # noise strength
@@ -451,7 +453,7 @@ if __name__ == "__main__":
                         dt,
                         ic,
                         noise,
-                        rhs_diHG, # change rhs here
+                        rhs_diHG,  # change rhs here
                         integrator,
                         args,
                         t_eval,

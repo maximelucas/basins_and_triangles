@@ -126,6 +126,7 @@ def plot_phases(thetas, it, ax=None, color="b", ms=2):
 
     return ax
 
+
 def plot_phases_line(thetas, it=-1, ax=None, **kwargs):
     """
     Plot the phases of oscillators at time `it` in order of node index.
@@ -152,12 +153,12 @@ def plot_phases_line(thetas, it=-1, ax=None, **kwargs):
 
     psi = thetas[:, it]
 
-    ax.plot(psi % (2*np.pi), "o", **kwargs)
+    ax.plot(psi % (2 * np.pi), "o", **kwargs)
 
     sb.despine()
 
-    ax.set_ylim([-0.1, 2*np.pi+0.1])
-    ax.set_yticks([0, np.pi, 2*np.pi])
+    ax.set_ylim([-0.1, 2 * np.pi + 0.1])
+    ax.set_yticks([0, np.pi, 2 * np.pi])
     ax.set_yticklabels([0, r"$\pi$", r"$2\pi$"])
 
     ax.set_xlabel("Node index")
@@ -167,7 +168,6 @@ def plot_phases_line(thetas, it=-1, ax=None, **kwargs):
 
 
 def plot_phases_ring(H, thetas, it=-1, ax=None, colorbar=True, **kwargs):
-
     """
     Plot the phase of oscillators at time `it` on a circle.
 
@@ -177,7 +177,7 @@ def plot_phases_ring(H, thetas, it=-1, ax=None, colorbar=True, **kwargs):
     Parameters
     ----------
     H : xgi Hypergraph
-        Hypergraph to plot    
+        Hypergraph to plot
     thetas : np.ndarray
         The phase of each oscillator over time. Shape is (N, T).
     it : int
@@ -199,14 +199,23 @@ def plot_phases_ring(H, thetas, it=-1, ax=None, colorbar=True, **kwargs):
 
     pos = xgi.circular_layout(H)
 
-    psi = thetas[:, it] % (2*np.pi)
+    psi = thetas[:, it] % (2 * np.pi)
 
-    ax, im = xgi.draw_nodes(H, pos=pos, ax=ax, node_fc=psi, vmin=0, vmax=2*np.pi, node_fc_cmap="twilight", **kwargs)
+    ax, im = xgi.draw_nodes(
+        H,
+        pos=pos,
+        ax=ax,
+        node_fc=psi,
+        vmin=0,
+        vmax=2 * np.pi,
+        node_fc_cmap="twilight",
+        **kwargs,
+    )
 
     ax.set_aspect("equal")
     if colorbar:
         cbar = plt.colorbar(im)
-        cbar.set_ticks(ticks=[0, np.pi, 2*np.pi], labels=[0, r"$\pi$", r"$2\pi$"])
+        cbar.set_ticks(ticks=[0, np.pi, 2 * np.pi], labels=[0, r"$\pi$", r"$2\pi$"])
 
     return ax, im
 
