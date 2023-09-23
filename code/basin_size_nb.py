@@ -2,7 +2,7 @@
 
 """
 Call with 
-./basins_max.py --num_threads 8 -n 1000 -t 300
+./basin_size_nb.py --num_threads 8 -n 1000 -t 300
 """
 
 # imports
@@ -32,44 +32,6 @@ data_dir = "../data/"
 
 Path(results_dir).mkdir(parents=True, exist_ok=True)
 Path(data_dir).mkdir(parents=True, exist_ok=True)
-
-
-@jit(nopython=True)
-def rhs_oneloop_nb(t, theta, omega, k1, k2, r1, r2):
-    """
-    RHS
-
-    Parameters
-    ----------
-    sigma : float
-        Triplet coupling strength
-    K1, K2 : int
-        Pairwise and triplet nearest neighbour ranges
-    """
-
-    N = len(theta)
-
-    pairwise = np.zeros(N)
-    triplets = np.zeros(N)
-
-    # triadic coupling
-    idx_2 = list(range(-r2, 0)) + list(range(1, r2 + 1))
-    idx_1 = range(-r1, r1 + 1)
-
-    for ii in range(N):
-        for jj in idx_1:  # pairwise
-            jjj = (ii + jj) % N
-            pairwise[ii] += sin(theta[jjj] - theta[ii])
-
-        for jj in idx_2:  # triplet
-            for kk in idx_2:
-                if jj < kk:  # because coupling function is symmetric in j and k
-                    jjj = (ii + jj) % N
-                    kkk = (ii + kk) % N
-                    # x2 to count triangles in both directions
-                    triplets[ii] += 2 * sin(theta[kkk] + theta[jjj] - 2 * theta[ii])
-
-    return (k1 / r1) * pairwise + k2 / (r2 * (2 * r2 - 1)) * triplets
 
 
 @jit(nopython=True)

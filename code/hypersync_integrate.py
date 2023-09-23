@@ -8,321 +8,50 @@ from math import sin
 import numpy as np
 import xgi
 from scipy.integrate import solve_ivp
+from numba import jit
+
 
 __all__ = [
-    "rhs_pairwise",
-    "rhs_pairwise_micro",
-    "rhs_triplet_sym_micro",
-    "rhs_pairwise_all",
-    "rhs_pairwise_all_harmonic",
-    "rhs_triplet_all_sym",
-    "rhs_triplet_all_asym",
-    "rhs_all_noloop",
-    "rhs_adhikari",
-    "rhs_lucas",
+    "rhs_ring_nb",
     "simulate_kuramoto",
 ]
 
-
-def rhs_triplet_sym_micro(t, psi, omega, k1, k2, triangles):
-    """Right-hand side of the ODE.
-    Only triplets.
-    Coupling function: sin(oj + ok - 2oi)
-
-    Parameters
-    ----------
-    t: float
-        Time
-    psi: array of float
-        Phases to integrate
+@jit(nopython=True)
+def rhs_ring_nb(t, theta, omega, k1, k2, r1, r2):
     """
-    N = len(psi)
-    triplet = np.zeros(N)
-
-    for i, j, k in triangles:
-        # sin(oj - ok - 2 oi)
-        oi = psi[i]
-        oj = psi[j]
-        ok = psi[k]
-        triplet[i] += 2 * sin(oj + ok - 2 * oi)
-        triplet[j] += 2 * sin(oi + ok - 2 * oj)
-        triplet[k] += 2 * sin(oj + oi - 2 * ok)
-
-    return omega + (k2 / N**2) * triplet
-
-
-def rhs_pairwise_micro(t, psi, omega, k1, k2, links):
-    """Right-hand side of the ODE.
-    Only pairwise.
-    Coupling function: sin(oj - oi)
+    RHS
 
     Parameters
     ----------
-    t: float
-        Time
-    psi: array of float
-        Phases to integrate
-    """
-
-    N = len(psi)
-    pairwise = np.zeros(N)
-
-    for i, j in links:
-        # sin(oj - oi)
-        oi = psi[i]
-        oj = psi[j]
-        pairwise[i] += sin(oj - oi)
-        pairwise[j] += sin(oi - oj)
-
-    return omega + (k1 / N) * pairwise
-
-
-def rhs_pairwise(t, psi, omega, k1, k2, adj1):
-    """Right-hand side of the ODE.
-    All-to-all, only pairwise.
-    Coupling function: sin(oj - oi)
-
-    Parameters
-    ----------
-    t: float
-        Time
-    psi: array of float
-        Phases to integrate
-    """
-
-    N = len(psi)
-    sin_psi = np.sin(psi)
-    cos_psi = np.cos(psi)
-
-    pairwise = adj1.dot(sin_psi) * cos_psi - adj1.dot(cos_psi) * sin_psi
-
-    return omega + (k1 / N) * pairwise
-
-
-def rhs_pairwise_all(t, psi, omega, k1, k2):
-    """Right-hand side of the ODE.
-    All-to-all, only pairwise.
-    Coupling function: sin(oj - oi)
-
-    Parameters
-    ----------
-    t: float
-        Time
-    psi: array of float
-        Phases to integrate
-    """
-
-    N = len(psi)
-    sin_psi = np.sin(psi)
-    cos_psi = np.cos(psi)
-
-    sum_cos_psi = np.sum(cos_psi)
-    sum_sin_psi = np.sum(sin_psi)
-
-    # oj - oi
-    pairwise = -sum_cos_psi * sin_psi + sum_sin_psi * cos_psi
-
-    return omega + (k1 / N) * pairwise
-
-
-def rhs_pairwise_all_harmonic(t, psi, omega, k1, k2):
-    """Right-hand side of the ODE.
-    All-to-all, only pairwise.
-    Coupling function: sin(2oj - 2oi)
-
-    Parameters
-    ----------
-    t: float
-        Time
-    psi: array of float
-        Phases to integrate
-    """
-
-    N = len(psi)
-    sin_psi = np.sin(psi)
-    cos_psi = np.cos(psi)
-
-    sum_cos_psi_sq = np.sum(cos_psi**2)
-    sum_sin_psi_sq = np.sum(sin_psi**2)
-
-    # 2oj - 2oi
-    pairwise = 2 * (
-        -cos_psi * sin_psi * sum_cos_psi_sq
-        + cos_psi**2 * np.sum(cos_psi * sin_psi)
-        - sin_psi**2 * np.sum(cos_psi * sin_psi)
-        + cos_psi * sin_psi * sum_sin_psi_sq
-    )
-
-    return omega + (k1 / N) * pairwise
-
-
-def rhs_triplet_all_sym(t, psi, omega, k1, k2):
-    """Right-hand side of the ODE.
-    All-to-all, only triplets.
-    Coupling function: sin(oj + ok - 2oi)
-
-    Parameters
-    ----------
-    t: float
-        Time
-    psi: array of float
-        Phases to integrate
-    """
-
-    N = len(psi)
-    sin_psi = np.sin(psi)
-    cos_psi = np.cos(psi)
-
-    sum_cos_psi = np.sum(np.cos(psi))
-    sum_sin_psi = np.sum(np.sin(psi))
-
-    # oj + ok - 2oi
-    triplet = (
-        -2 * sum_cos_psi**2 * sin_psi * cos_psi
-        + cos_psi**2 * sum_cos_psi * sum_sin_psi
-        - sum_cos_psi * sin_psi**2 * sum_sin_psi
-        + sum_cos_psi * cos_psi**2 * sum_sin_psi
-        - sum_cos_psi * sin_psi**2 * sum_sin_psi
-        + 2 * cos_psi * sin_psi * sum_sin_psi**2
-    )
-
-    return omega + (k2 / N**2) * triplet
-
-
-def rhs_triplet_all_asym(t, psi, omega, k1, k2):
-    """Right-hand side of the ODE.
-    All-to-all, only triplets.
-    Coupling function: sin(2 oj - ok - oi)
-
-    Parameters
-    ----------
-    t: float
-        Time
-    psi: array of float
-        Phases to integrate
-    """
-
-    N = len(psi)
-    sin_psi = np.sin(psi)
-    cos_psi = np.cos(psi)
-
-    sum_cos_psi = np.sum(np.cos(psi))
-    sum_sin_psi = np.sum(np.sin(psi))
-
-    sum_cos_psi_sq = np.sum(np.cos(psi) ** 2)
-    sum_sin_psi_sq = np.sum(np.sin(psi) ** 2)
-
-    # 2 oj - ok - oi
-    triplet = (
-        -sum_cos_psi_sq * sum_cos_psi * sin_psi
-        + 2 * cos_psi * np.sum(cos_psi * sin_psi) * sum_cos_psi
-        + sum_cos_psi * sin_psi * sum_sin_psi_sq
-        - cos_psi * sum_cos_psi_sq * sum_sin_psi
-        - 2 * np.sum(cos_psi * sin_psi) * sin_psi * sum_sin_psi
-        + cos_psi * sum_sin_psi_sq * sum_sin_psi
-    )
-
-    return omega + (k2 / N**2) * triplet
-
-
-def rhs_all_noloop(t, psi, omega, k1, k2, links, triangles):
-    """Right-hand side of the differential equation"""
-
-    N = len(psi)
-
-    pairwise = np.zeros(N)
-    triplet = np.zeros(N)
-
-    sum_cos_psi = np.sum(np.cos(psi))
-    sum_sin_psi = np.sum(np.sin(psi))
-
-    pairwise = sum_sin_psi * np.cos(psi) - sum_cos_psi * np.sin(psi)
-
-    # oj + ok - 2oi
-    triplet = (
-        sum_cos_psi * np.cos(psi) ** 2 * sum_sin_psi
-        + 2 * np.cos(psi) * sum_sin_psi * np.sin(psi) * sum_sin_psi
-        - sum_cos_psi * np.sin(psi) ** 2 * sum_sin_psi
-        + sum_cos_psi * np.cos(psi) ** 2 * sum_sin_psi
-        + sum_cos_psi * (-2) * sum_cos_psi * np.cos(psi) * np.sin(psi)
-        + sum_cos_psi * (-1) * sum_sin_psi * np.sin(psi) ** 2
-    )
-
-    return omega + k1 * pairwise + k2 * triplet
-
-
-def rhs_lucas(t, psi, omega, k1, k2, k1_avg, k2_avg, links, triangles):
-    """Right-hand side of the differential equation
-
-    Pairwise coupling function: sin(oj - oi)
-    Triplet coupling function: sin(oj + ok - 2oi)
-
-    ref: Eq 1 of https://www.nature.com/articles/s41467-023-37190-9
-
-    Parameters
-    ----------
-    t : float
-        Time
-    psi : array of float
-        State of the N phases at time t
-    k1 : float
-        Pairwise coupling strength
-    k2 : float
+    sigma : float
         Triplet coupling strength
-    **args
-        Other arguments to feed this function
+    K1, K2 : int
+        Pairwise and triplet nearest neighbour ranges
     """
 
-    N = len(psi)
+    N = len(theta)
+
     pairwise = np.zeros(N)
-    triplet = np.zeros(N)
+    triplets = np.zeros(N)
 
-    for i, j in links:
-        # sin(oj - oi)
-        oi = psi[i]
-        oj = psi[j]
-        pairwise[i] += sin(oj - oi)
-        pairwise[j] += sin(oi - oj)
+    # triadic coupling
+    idx_2 = list(range(-r2, 0)) + list(range(1, r2 + 1))
+    idx_1 = range(-r1, r1 + 1)
 
-    for i, j, k in triangles:
-        # sin(2 oj - ok - oi)
-        oi = psi[i]
-        oj = psi[j]
-        ok = psi[k]
-        triplet[i] += 2 * sin(oj + ok - 2 * oi)
-        triplet[j] += 2 * sin(oi + ok - 2 * oj)
-        triplet[k] += 2 * sin(oj + oi - 2 * ok)
+    for ii in range(N):
+        for jj in idx_1:  # pairwise
+            jjj = (ii + jj) % N
+            pairwise[ii] += sin(theta[jjj] - theta[ii])
 
-    g1 = k1 / k1_avg if k1_avg != 0 else 0
-    g2 = (k2 / (2 * k2_avg)) if k2_avg != 0 else 0
+        for jj in idx_2:  # triplet
+            for kk in idx_2:
+                if jj < kk:  # because coupling function is symmetric in j and k
+                    jjj = (ii + jj) % N
+                    kkk = (ii + kk) % N
+                    # x2 to count triangles in both directions
+                    triplets[ii] += 2 * sin(theta[kkk] + theta[jjj] - 2 * theta[ii])
 
-    return omega + g1 * pairwise + g2 * (triplet / 2)
-
-
-def rhs_adhikari(t, psi, omega, k1, k2, links, triangles):
-    """Right-hand side of the differential equation"""
-
-    N = len(psi)
-    pairwise = np.zeros(N)
-    triplet = np.zeros(N)
-
-    for i, j in links:
-        # sin(oj - oi)
-        oi = psi[i]
-        oj = psi[j]
-        pairwise[i] += sin(oj - oi)
-        pairwise[j] += sin(oi - oj)
-
-    for i, j, k in triangles:
-        # sin(2 oj - ok - oi)
-        oi = psi[i]
-        oj = psi[j]
-        ok = psi[k]
-        triplet[i] += sin(2 * oj - ok - oi) + sin(2 * ok - oj - oi)
-        triplet[j] += sin(2 * oi - ok - oj) + sin(2 * ok - oi - oj)
-        triplet[k] += sin(2 * oj - oi - ok) + sin(2 * oi - oj - ok)
-
-    return omega + k1 * pairwise + k2 * triplet
+    return (k1 / r1) * pairwise + k2 / (r2 * (2 * r2 - 1)) * triplets
 
 
 def simulate_kuramoto(
