@@ -1,7 +1,7 @@
 # Basins and triangles
 
 This repository contains the code used for the analysis presented in the paper:  
-"[Higher-order interactions shape collective dynamics differently in hypergraphs and simplicial complexes][2],"  
+"Higher-order interactions influence linear stability and basin stability differently",  
 by Y. Zhang, P. S. Skardal, F. Battiston, G. Petri, and M. Lucas
 
 
