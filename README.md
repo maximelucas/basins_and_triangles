@@ -8,7 +8,7 @@ by Y. Zhang, P. S. Skardal, F. Battiston, G. Petri, and M. Lucas
 ### Contents
 - `notebooks/`: notebooks used to produce the figures and simple simulations
 - `code/`: modules with functions used in the notebooks and heavier simulation scripts
-- `data/`: 
+- `data/`: simulation outputs saved for plotting
 
 ### Dependencies
 
