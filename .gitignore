@@ -1,8 +1,9 @@
 # max 
 *.npy
 results/run*
-*.hid # 
+*hid. # 
 .gitignore
+notes/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
