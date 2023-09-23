@@ -4,6 +4,7 @@ results/run*
 *hid. # 
 .gitignore
 notes/*
+results/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
