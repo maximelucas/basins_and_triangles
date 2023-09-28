@@ -1,4 +1,4 @@
-# Basins and triangles
+# Deeper but smaller: Higher-order interactions increase linear stability but shrink basins
 
 This repository contains the code used for the analysis presented in the paper:  
 "Deeper but smaller: Higher-order interactions increase linear stability but shrink basins",  
