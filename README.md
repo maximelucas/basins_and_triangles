@@ -1,7 +1,7 @@
 # Basins and triangles
 
 This repository contains the code used for the analysis presented in the paper:  
-"Higher-order interactions influence linear stability and basin stability differently",  
+"Deeper but smaller: Higher-order interactions increase linear stability but shrink basins",  
 by Y. Zhang, P. S. Skardal, F. Battiston, G. Petri, and M. Lucas
 
 <img src="https://github.com/maximelucas/basins_and_triangles/assets/7493360/1728fff7-5d66-4e13-8803-61b5ab19a332" width="45%">
@@ -16,4 +16,4 @@ by Y. Zhang, P. S. Skardal, F. Battiston, G. Petri, and M. Lucas
 
 The code was tested for Python 3.9 and the dependencies specified in [requirements.txt](requirements.txt).
 
-In particular, the code relies on the [XGI library](https://github.com/ComplexGroupInteractions/xgi) and the SciPy ODE integration functions.
+In particular, the code relies on the [XGI library](https://github.com/ComplexGroupInteractions/xgi) and the [SciPy](https://github.com/scipy/scipy) ODE integration functions.
