@@ -295,7 +295,7 @@ def rhs_oneloop_SC_nb(t, theta, omega, k1, k2, r1, r2):
 
 
 @jit(nopython=True)
-def rhs_ring_nb(t, theta, omega, k1, k2, r1, r2):
+def rhs_ring_harmonics_nb(t, theta, omega, k1, k2, r1):
     """
     RHS for coupled phase oscillators on a ring with 1st and 2nd harmonics.
     
@@ -317,25 +317,17 @@ def rhs_ring_nb(t, theta, omega, k1, k2, r1, r2):
 
     N = len(theta)
 
-    pairwise = np.zeros(N)
-    triplets = np.zeros(N)
+    first = np.zeros(N)
+    second = np.zeros(N)
 
     # triadic coupling
-    idx_2 = list(range(-r2, 0)) + list(range(1, r2 + 1))
     idx_1 = range(-r1, r1 + 1)
 
     for ii in range(N):
         for jj in idx_1:  # pairwise
             jjj = (ii + jj) % N
-            pairwise[ii] += sin(theta[jjj] - theta[ii])
+            first[ii] += sin(theta[jjj] - theta[ii])
+            second[ii] += sin(2*theta[jjj] - 2*theta[ii])
 
-        for jj in idx_2:  # triplet
-            for kk in idx_2:
-                if jj < kk:  # because coupling function is symmetric in j and k
-                    jjj = (ii + jj) % N
-                    kkk = (ii + kk) % N
-                    # x2 to count triangles in both directions
-                    triplets[ii] += 2 * sin(theta[kkk] + theta[jjj] - 2 * theta[ii])
-
-    return (k1 / r1) * pairwise + k2 / (r2 * (2 * r2 - 1)) * triplets
+    return (k1 / r1) * first + (k2 / r1) * second
 
