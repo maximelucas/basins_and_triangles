@@ -22,14 +22,22 @@ __all__ = [
 @jit(nopython=True)
 def rhs_ring_nb(t, theta, omega, k1, k2, r1, r2):
     """
-    RHS
+    RHS for coupled phase oscillators on a ring with pairwise and triplet interactions.
+    
+    Coupling functions : 
+    * sin(oj - oi)
+    * sin(oj + ok - 2oi)
 
     Parameters
     ----------
-    sigma : float
-        Triplet coupling strength
-    K1, K2 : int
-        Pairwise and triplet nearest neighbour ranges
+    t : float
+        Time of integration 
+    omega : float or array of floats
+        Natural frequencies of oscillators
+    k1, k2 : int
+        Pairwise and triplet coupling strengths
+    r1, r2 : int 
+        Coupling range for pairwise and triplet interactions on the ring
     """
 
     N = len(theta)
@@ -145,14 +153,22 @@ def simulate_kuramoto(
 @jit(nopython=True)
 def rhs_oneloop_nb_quadruplet(t, theta, omega, k1, k2, r1, r2):
     """
-    RHS
+    RHS for coupled phase oscillators on a ring with pairwise and quadruplet interactions.
+    
+    Coupling functions : 
+    * sin(oj - oi)
+    * sin(oj + ok + ol - 3oi)
 
     Parameters
     ----------
-    sigma : float
-        Triplet coupling strength
-    K1, K2 : int
-        Pairwise and triplet nearest neighbour ranges
+    t : float
+        Time of integration 
+    omega : float or array of floats
+        Natural frequencies of oscillators
+    k1, k2 : int
+        Pairwise and triplet coupling strengths
+    r1, r2 : int 
+        Coupling range for pairwise and triplet interactions on the ring
     """
 
     N = len(theta)
@@ -188,14 +204,22 @@ def rhs_oneloop_nb_quadruplet(t, theta, omega, k1, k2, r1, r2):
 @jit(nopython=True)
 def rhs_oneloop_nb_asym(t, theta, omega, k1, k2, r1, r2):
     """
-    RHS
+    RHS for coupled phase oscillators on a ring with pairwise and triplet interactions.
+    
+    Coupling functions : 
+    * sin(oj - oi)
+    * sin(2ok - oj - oi) - asymmetric
 
     Parameters
     ----------
-    sigma : float
-        Triplet coupling strength
-    K1, K2 : int
-        Pairwise and triplet nearest neighbour ranges
+    t : float
+        Time of integration 
+    omega : float or array of floats
+        Natural frequencies of oscillators
+    k1, k2 : int
+        Pairwise and triplet coupling strengths
+    r1, r2 : int 
+        Coupling range for pairwise and triplet interactions on the ring
     """
 
     N = len(theta)
@@ -217,7 +241,6 @@ def rhs_oneloop_nb_asym(t, theta, omega, k1, k2, r1, r2):
                 if jj != kk:
                     jjj = (ii + jj) % N
                     kkk = (ii + kk) % N
-                    # x2 to count triangles in both directions
                     triplets[ii] += sin(2 * theta[kkk] - theta[jjj] - theta[ii])
 
     return (k1 / r1) * pairwise + k2 / (r2 * (2 * r2 - 1)) * triplets
@@ -226,14 +249,22 @@ def rhs_oneloop_nb_asym(t, theta, omega, k1, k2, r1, r2):
 @jit(nopython=True)
 def rhs_oneloop_SC_nb(t, theta, omega, k1, k2, r1, r2):
     """
-    RHS
+    RHS for coupled phase oscillators on a ring with pairwise and triplet interactions.
+    
+    Coupling functions : 
+    * sin(oj - oi)
+    * sin(oj + ok - 2oi)
 
     Parameters
     ----------
-    sigma : float
-        Triplet coupling strength
-    K1, K2 : int
-        Pairwise and triplet nearest neighbour ranges
+    t : float
+        Time of integration 
+    omega : float or array of floats
+        Natural frequencies of oscillators
+    k1, k2 : int
+        Pairwise and triplet coupling strengths
+    r1, r2 : int 
+        Coupling range for pairwise and triplet interactions on the ring
     """
 
     N = len(theta)
@@ -252,9 +283,8 @@ def rhs_oneloop_SC_nb(t, theta, omega, k1, k2, r1, r2):
 
         for jj in idx_2:  # triplet
             for kk in idx_2:
-                if (jj < kk) and (
-                    kk - jj
-                ) <= r2:  # because coupling function is symmetric in j and k
+                # because coupling function is symmetric in j and k
+                if (jj < kk) and (kk - jj) <= r2: 
                     jjj = (ii + jj) % N
                     kkk = (ii + kk) % N
                     # x2 to count triangles in both directions
@@ -262,4 +292,50 @@ def rhs_oneloop_SC_nb(t, theta, omega, k1, k2, r1, r2):
 
     g2 = (r2 * (2 * r2 - 1)) / 2  # divide by to remove undirected
     return (k1 / r1) * pairwise + k2 / g2 * triplets
+
+
+@jit(nopython=True)
+def rhs_ring_nb(t, theta, omega, k1, k2, r1, r2):
+    """
+    RHS for coupled phase oscillators on a ring with 1st and 2nd harmonics.
+    
+    Coupling functions : 
+    * sin(oj - oi)
+    * sin(2oj - 2oi)
+
+    Parameters
+    ----------
+    t : float
+        Time of integration 
+    omega : float or array of floats
+        Natural frequencies of oscillators
+    k1, k2 : int
+        1st and 2nd harmonics coupling strengths
+    r1, r2 : int 
+        Coupling range for pairwise and triplet interactions on the ring
+    """
+
+    N = len(theta)
+
+    pairwise = np.zeros(N)
+    triplets = np.zeros(N)
+
+    # triadic coupling
+    idx_2 = list(range(-r2, 0)) + list(range(1, r2 + 1))
+    idx_1 = range(-r1, r1 + 1)
+
+    for ii in range(N):
+        for jj in idx_1:  # pairwise
+            jjj = (ii + jj) % N
+            pairwise[ii] += sin(theta[jjj] - theta[ii])
+
+        for jj in idx_2:  # triplet
+            for kk in idx_2:
+                if jj < kk:  # because coupling function is symmetric in j and k
+                    jjj = (ii + jj) % N
+                    kkk = (ii + kk) % N
+                    # x2 to count triangles in both directions
+                    triplets[ii] += 2 * sin(theta[kkk] + theta[jjj] - 2 * theta[ii])
+
+    return (k1 / r1) * pairwise + k2 / (r2 * (2 * r2 - 1)) * triplets
 
