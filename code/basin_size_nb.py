@@ -34,235 +34,6 @@ Path(results_dir).mkdir(parents=True, exist_ok=True)
 Path(data_dir).mkdir(parents=True, exist_ok=True)
 
 
-@jit(nopython=True)
-def rhs_oneloop_nb_quadruplet(t, theta, omega, k1, k2, r1, r2):
-    """
-    RHS
-
-    Parameters
-    ----------
-    sigma : float
-        Triplet coupling strength
-    K1, K2 : int
-        Pairwise and triplet nearest neighbour ranges
-    """
-
-    N = len(theta)
-
-    pairwise = np.zeros(N)
-    triplets = np.zeros(N)
-
-    # triadic coupling
-    idx_2 = list(range(-r2, 0)) + list(range(1, r2 + 1))
-    idx_1 = range(-r1, r1 + 1)
-
-    for ii in range(N):
-        for jj in idx_1:  # pairwise
-            jjj = (ii + jj) % N
-            pairwise[ii] += sin(theta[jjj] - theta[ii])
-
-        for jj in idx_2:  # triplet
-            for kk in idx_2:
-                for ll in idx_2:
-                    if jj != kk and jj != ll and kk != ll:
-                        jjj = (ii + jj) % N
-                        kkk = (ii + kk) % N
-                        lll = (ll + jj) % N
-                        # x2 to count triangles in both directions
-                        triplets[ii] += sin(
-                            theta[lll] + theta[kkk] + theta[jjj] - 3 * theta[ii]
-                        )
-
-    g2 = (1 / 3) * r2 * (2 * r2 - 2) * (2 * r2 - 1)  # (2 * r2) choose 3
-    return (k1 / r1) * pairwise + k2 / g2 * triplets
-
-
-@jit(nopython=True)
-def rhs_oneloop_nb_asym(t, theta, omega, k1, k2, r1, r2):
-    """
-    RHS
-
-    Parameters
-    ----------
-    sigma : float
-        Triplet coupling strength
-    K1, K2 : int
-        Pairwise and triplet nearest neighbour ranges
-    """
-
-    N = len(theta)
-
-    pairwise = np.zeros(N)
-    triplets = np.zeros(N)
-
-    # triadic coupling
-    idx_2 = list(range(-r2, 0)) + list(range(1, r2 + 1))
-    idx_1 = range(-r1, r1 + 1)
-
-    for ii in range(N):
-        for jj in idx_1:  # pairwise
-            jjj = (ii + jj) % N
-            pairwise[ii] += sin(theta[jjj] - theta[ii])
-
-        for jj in idx_2:  # triplet
-            for kk in idx_2:
-                if jj != kk:
-                    jjj = (ii + jj) % N
-                    kkk = (ii + kk) % N
-                    # x2 to count triangles in both directions
-                    triplets[ii] += sin(2 * theta[kkk] - theta[jjj] - theta[ii])
-
-    return (k1 / r1) * pairwise + k2 / (r2 * (2 * r2 - 1)) * triplets
-
-
-@jit(nopython=True)
-def rhs_oneloop_SC_nb(t, theta, omega, k1, k2, r1, r2):
-    """
-    RHS
-
-    Parameters
-    ----------
-    sigma : float
-        Triplet coupling strength
-    K1, K2 : int
-        Pairwise and triplet nearest neighbour ranges
-    """
-
-    N = len(theta)
-
-    pairwise = np.zeros(N)
-    triplets = np.zeros(N)
-
-    # triadic coupling
-    idx_2 = list(range(-r2, 0)) + list(range(1, r2 + 1))
-    idx_1 = range(-r1, r1 + 1)
-
-    for ii in range(N):
-        for jj in idx_1:  # pairwise
-            jjj = (ii + jj) % N
-            pairwise[ii] += sin(theta[jjj] - theta[ii])
-
-        for jj in idx_2:  # triplet
-            for kk in idx_2:
-                if (jj < kk) and (
-                    kk - jj
-                ) <= r2:  # because coupling function is symmetric in j and k
-                    jjj = (ii + jj) % N
-                    kkk = (ii + kk) % N
-                    # x2 to count triangles in both directions
-                    triplets[ii] += 2 * sin(theta[kkk] + theta[jjj] - 2 * theta[ii])
-
-    g2 = (r2 * (2 * r2 - 1)) / 2  # divide by to remove undirected
-    return (k1 / r1) * pairwise + k2 / g2 * triplets
-
-
-def di_nearest_neigbors(N, d, r):
-    """
-    Create a d-uniform hypergraph representing nearest neighbor relationships.
-
-    Parameters
-    ----------
-    N : int
-        The total number of nodes.
-
-    d : int
-        Size of hyperedges
-
-    r : int
-        The range of neighbors to consider. Neighbors within the range [-r, r]
-        (excluding the node itself) will be connected.
-
-    Returns
-    -------
-    xgi.Hypergraph
-        A hypergraph object representing the nearest neighbor relationships.
-    """
-
-    DH = xgi.DiHypergraph()
-    nodes = np.arange(N)
-
-    edges = []
-    neighbor_rel_ids = np.concatenate((np.arange(-r, 0), np.arange(1, r + 1)))
-
-    for i in nodes:
-        neighbor_ids = i + neighbor_rel_ids
-        edge_neighbors_i = combinations(neighbor_ids, d - 1)
-        edges_i = [[list(np.mod(comb, N)), [i]] for comb in edge_neighbors_i]
-        edges = edges + edges_i
-
-    # edges = np.mod(edges, N)
-
-    DH.add_nodes_from(nodes)
-    DH.add_edges_from(edges)
-    DH.cleanup()  # remove duplicate
-
-    return DH
-
-
-def ring_dihypergraph(N, r1, r2):
-    H2 = di_nearest_neigbors(N, d=3, r=r2)
-    H1 = di_nearest_neigbors(N, d=2, r=r1)
-
-    DH = xgi.DiHypergraph()
-    DH.add_nodes_from(H1.nodes)
-    DH.add_edges_from(H1.edges.dimembers())
-    DH.add_edges_from(H2.edges.dimembers())
-
-    return DH
-
-
-def rhs_diHG(t, psi, omega, k1, k2, r1, r2, dilinks, ditriangles):
-    """
-    RHS
-
-    Parameters
-    ----------
-    k1, k2 : floats
-        Pairwise and triplet coupling strengths
-    r1, r2 : int
-        Pairwise and triplet nearest neighbour ranges
-    adj1 : ndarray, shape (N, N)
-        Adjacency matrix of order 1
-    triangles: list of sets
-        List of unique triangles
-
-    """
-
-    N = len(psi)
-
-    pairwise = np.zeros(N)
-
-    for senders, receiver in dilinks:
-        # sin(oj - oi)
-        senders = list(senders)
-        receiver = list(receiver)
-        i = receiver
-        j = senders
-        oi = psi[i]
-        oj = psi[j]
-        pairwise[i] += sin(oj - oi)
-
-    triplet = np.zeros(N)
-
-    # print(len(triangles))
-    for senders, receiver in ditriangles:
-        # sin(oj + ok - 2 oi)
-        senders = list(senders)
-        receiver = list(receiver)
-        i = receiver
-        j = senders[0]
-        k = senders[1]
-        oi = psi[i]
-        oj = psi[j]
-        ok = psi[k]
-        triplet[i] += 2 * sin(oj + ok - 2 * oi)
-
-    g1 = r1
-    g2 = r2 * (2 * r2 - 1)
-
-    return omega + (k1 / g1) * pairwise + (k2 / g2) * triplet
-
-
 def simulate_iteration(
     i,
     H,
@@ -305,7 +76,7 @@ def simulate_iteration(
 
         nrep_thetas[j] = thetas[:, -1]
 
-        if (j <= 5) or ("cluster" in identify_state(thetas)):
+        if (j <= 5) or (("cluster" in identify_state(thetas) and j <= 500)) or (("other" in identify_state(thetas) and j <= 500)):
             fig, axs = plot_sync(thetas, times)
 
             axs[0, 1].set_title(f"$t={times[0]}$s", fontsize="x-small")
@@ -355,13 +126,13 @@ if __name__ == "__main__":
     r1 = 2
     r2 = 2
 
-    suffix = "di_asym"  # "SC"
+    suffix = "ring_sym_SC"  # "SC"
 
-    # H = xgi.trivial_hypergraph(N)
-    H = ring_dihypergraph(N, r1, r2)
+    H = xgi.trivial_hypergraph(N)
+    #H = ring_dihypergraph(N, r1, r2)
 
-    dilinks = H.edges.filterby("size", 2).dimembers()
-    ditriangles = H.edges.filterby("size", 3).dimembers()
+    #dilinks = H.edges.filterby("size", 2).dimembers()
+    #ditriangles = H.edges.filterby("size", 3).dimembers()
 
     # define parameters
 
@@ -382,7 +153,7 @@ if __name__ == "__main__":
     integrator = args.integrator
     options = {"atol": 1e-8, "rtol": 1e-8}
 
-    tag_params = f"ring_k1_{k1}_k2s_ic_{ic}_tend_{t_end}_nreps_{n_reps}_{suffix}"
+    tag_params = f"k1_{k1}_k2s_ic_{ic}_tend_{t_end}_nreps_{n_reps}_{suffix}"
 
     # create directory for this run
     run_dir = f"{results_dir}run_{tag_params}/"
@@ -400,7 +171,7 @@ if __name__ == "__main__":
     with multiprocessing.Pool(processes=args.num_threads) as pool:
         results = []
         for i, k2 in enumerate(k2s):
-            args = (r1, r2, dilinks, ditriangles)
+            args = (r1, r2)
 
             results.append(
                 pool.apply_async(
@@ -415,7 +186,7 @@ if __name__ == "__main__":
                         dt,
                         ic,
                         noise,
-                        rhs_diHG,  # change rhs here
+                        rhs_oneloop_SC_nb,  # change rhs here
                         integrator,
                         args,
                         t_eval,

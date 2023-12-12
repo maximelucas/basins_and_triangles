@@ -17,6 +17,7 @@ __all__ = [
     "rhs_oneloop_nb_quadruplet",
     "rhs_oneloop_nb_asym",
     "rhs_oneloop_SC_nb",
+    "rhs_ring_harmonics_nb",
 ]
 
 @jit(nopython=True)
