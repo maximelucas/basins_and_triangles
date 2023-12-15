@@ -26,7 +26,7 @@ from hypersync_identify import *
 from hypersync_integrate import *
 from numba import jit
 
-mpl.use('agg') # non GUI backend to avoid memory leak 
+mpl.use("agg")  # non GUI backend to avoid memory leak
 # see https://github.com/matplotlib/matplotlib/issues/20300
 
 sb.set_theme(style="ticks", context="notebook")
@@ -80,14 +80,18 @@ def simulate_iteration(
             integrator=integrator,
             args=args,
             t_eval=False,
-            **options
+            **options,
         )
 
         nrep_thetas[j] = thetas[:, -1]
 
         state = identify_state(thetas)
 
-        if (j <= 5) or (("cluster" in state) and (cluster_save_count <= 5)) or (("other" in state and other_save_count <= 5)):
+        if (
+            (j <= 5)
+            or (("cluster" in state) and (cluster_save_count <= 5))
+            or (("other" in state and other_save_count <= 5))
+        ):
             plot_sync(thetas, times, axs=axs)
 
             axs[0, 1].set_title(f"$t={times[0]}$s", fontsize="x-small")
@@ -150,7 +154,7 @@ if __name__ == "__main__":
     H = xgi.trivial_hypergraph(N)
     ps = 20 * np.array([1 / N, 1 / N**2])
     H = xgi.random_hypergraph(N, ps)
-    #H = ring_dihypergraph(N, r1, r2)
+    # H = ring_dihypergraph(N, r1, r2)
 
     links = H.edges.filterby("size", 2).members()
     triangles = H.edges.filterby("size", 3).members()
