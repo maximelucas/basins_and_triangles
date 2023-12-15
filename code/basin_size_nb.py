@@ -14,6 +14,7 @@ from itertools import combinations
 from math import sin
 from pathlib import Path
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -24,6 +25,9 @@ from hypersync_generate import *
 from hypersync_identify import *
 from hypersync_integrate import *
 from numba import jit
+
+mpl.use('agg') # non GUI backend to avoid memory leak 
+# see https://github.com/matplotlib/matplotlib/issues/20300
 
 sb.set_theme(style="ticks", context="notebook")
 
@@ -57,6 +61,10 @@ def simulate_iteration(
 
     nrep_thetas = np.zeros((n_reps, N))  # , len(times)))
 
+    fig, axs = plt.subplots(2, 2, figsize=(4, 2), width_ratios=[3, 1], sharex="col")
+    cluster_save_count = 0
+    other_save_count = 0
+
     for j in range(n_reps):
         psi_init = generate_state(N, kind=ic, noise=noise)
 
@@ -72,12 +80,15 @@ def simulate_iteration(
             integrator=integrator,
             args=args,
             t_eval=False,
+            **options
         )
 
         nrep_thetas[j] = thetas[:, -1]
 
-        if (j <= 5) or (("cluster" in identify_state(thetas) and j <= 500)) or (("other" in identify_state(thetas) and j <= 500)):
-            fig, axs = plot_sync(thetas, times)
+        state = identify_state(thetas)
+
+        if (j <= 5) or (("cluster" in state) and (cluster_save_count <= 5)) or (("other" in state and other_save_count <= 5)):
+            plot_sync(thetas, times, axs=axs)
 
             axs[0, 1].set_title(f"$t={times[0]}$s", fontsize="x-small")
             axs[1, 1].set_title(f"$t={times[-1]}$s", fontsize="x-small")
@@ -90,7 +101,15 @@ def simulate_iteration(
             tag_params = f"ring_k1_{k1}_k2_{k2}_{j}"
             fig_name = f"sync_{tag_params}"  # _{k2s[j]}_{i}"
             plt.savefig(f"{run_dir}{fig_name}.png", dpi=300, bbox_inches="tight")
-            plt.close()
+
+            for ax in axs.flatten():
+                ax.clear()
+
+        if "cluster" in state:
+            cluster_save_count += 1
+        elif "other" in state:
+            other_save_count += 1
+    plt.close("all")
 
     return i, nrep_thetas
 
@@ -120,25 +139,27 @@ if __name__ == "__main__":
     n_reps = args.n_reps  # number of random realisations
 
     # generate structure
-    N = 100
+    N = 42
     # H = xgi.complete_hypergraph(N, max_order=2)
 
     r1 = 2
     r2 = 2
 
-    suffix = "ring_sym_SC"  # "SC"
+    suffix = "RHG_sym"  # "SC"
 
     H = xgi.trivial_hypergraph(N)
+    ps = 20 * np.array([1 / N, 1 / N**2])
+    H = xgi.random_hypergraph(N, ps)
     #H = ring_dihypergraph(N, r1, r2)
 
-    #dilinks = H.edges.filterby("size", 2).dimembers()
-    #ditriangles = H.edges.filterby("size", 3).dimembers()
+    links = H.edges.filterby("size", 2).members()
+    triangles = H.edges.filterby("size", 3).members()
 
     # define parameters
 
     # dynamical
     k1 = 1  # pairwise coupling strength
-    k2s = np.arange(0, 9.5, 0.5)  # triplet coupling strength
+    k2s = np.arange(0, 4.5, 0.5)  # triplet coupling strength
     omega = 0  # 1 * np.ones(N)  # np.random.normal(size=N) #1 * np.ones(N)
 
     ic = "random"  # initial condition type, see below
@@ -149,7 +170,7 @@ if __name__ == "__main__":
     dt = 0.01
     times = np.arange(0, t_end + dt / 2, dt)
 
-    t_eval = False  # integrate at all above timepoints
+    t_eval = False  # whether to integrate at all above timepoints
     integrator = args.integrator
     options = {"atol": 1e-8, "rtol": 1e-8}
 
@@ -171,7 +192,7 @@ if __name__ == "__main__":
     with multiprocessing.Pool(processes=args.num_threads) as pool:
         results = []
         for i, k2 in enumerate(k2s):
-            args = (r1, r2)
+            args = (links, triangles)
 
             results.append(
                 pool.apply_async(
@@ -186,7 +207,7 @@ if __name__ == "__main__":
                         dt,
                         ic,
                         noise,
-                        rhs_oneloop_SC_nb,  # change rhs here
+                        rhs_23_sym,  # change rhs here
                         integrator,
                         args,
                         t_eval,

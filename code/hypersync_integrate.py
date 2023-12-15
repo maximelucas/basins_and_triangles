@@ -18,6 +18,7 @@ __all__ = [
     "rhs_oneloop_nb_asym",
     "rhs_oneloop_SC_nb",
     "rhs_ring_harmonics_nb",
+    "rhs_23_sym",
 ]
 
 @jit(nopython=True)
@@ -332,3 +333,30 @@ def rhs_ring_harmonics_nb(t, theta, omega, k1, k2, r1):
 
     return (k1 / r1) * first + (k2 / r1) * second
 
+
+def rhs_23_sym(t, psi, omega, k1, k2, links, triangles):
+
+    N = len(psi)
+    pairwise = np.zeros(N)
+    triplet = np.zeros(N)
+    for i, j in links:
+        # sin(oj - oi)
+        oi = psi[i]
+        oj = psi[j]
+        pairwise[i] += sin(oj - oi)
+        pairwise[j] += sin(oi - oj)
+        
+    for i, j, k in triangles:
+        # sin(2 oj - ok - oi)
+        oi = psi[i]
+        oj = psi[j]
+        ok = psi[k]
+        triplet[i] += 2 * sin(oj + ok - 2 * oi)
+        triplet[j] += 2 * sin(oi + ok - 2 * oj)
+        triplet[k] += 2 * sin(oj + oi - 2 * ok)
+
+    k1_avg = len(links) / N * 2
+    k2_avg = len(triangles) / N * 3
+
+        
+    return omega + (k1 / k1_avg) * pairwise + (k2 / (k2_avg * 2)) * triplet

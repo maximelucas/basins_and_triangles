@@ -220,7 +220,7 @@ def plot_phases_ring(H, thetas, it=-1, ax=None, colorbar=True, **kwargs):
     return ax, im
 
 
-def plot_sync(thetas, times, n=None):
+def plot_sync(thetas, times, n=None, axs=None):
     """
     Plot the time series of oscillators, their phase plots, and the order parameter.
 
@@ -240,7 +240,8 @@ def plot_sync(thetas, times, n=None):
         (`fig`, `axs`) where `fig` is a `plt.Figure` and `axs` is a numpy ndarray of `plt.Axes`.
     """
 
-    fig, axs = plt.subplots(2, 2, figsize=(4, 2), width_ratios=[3, 1], sharex="col")
+    if axs is None:
+        _, axs = plt.subplots(2, 2, figsize=(4, 2), width_ratios=[3, 1], sharex="col")
 
     plot_series(thetas, times, ax=axs[0, 0], n=n)
 
@@ -251,4 +252,4 @@ def plot_sync(thetas, times, n=None):
 
     plot_phases(thetas, -1, ax=axs[1, 1], color="b")
 
-    return fig, axs
+    return axs
