@@ -149,21 +149,20 @@ if __name__ == "__main__":
     r1 = 2
     r2 = 2
 
-    suffix = "RHG_sym"  # "SC"
+    suffix = "ring_harmonics"  # "SC"
 
     H = xgi.trivial_hypergraph(N)
-    ps = 20 * np.array([1 / N, 1 / N**2])
-    H = xgi.random_hypergraph(N, ps)
-    # H = ring_dihypergraph(N, r1, r2)
+    #ps = 20 * np.array([1 / N, 1 / N**2])
+    #H = xgi.random_hypergraph(N, ps, seed=42)
 
-    links = H.edges.filterby("size", 2).members()
-    triangles = H.edges.filterby("size", 3).members()
+    #links = H.edges.filterby("size", 2).members()
+    #triangles = H.edges.filterby("size", 3).members()
 
     # define parameters
 
     # dynamical
     k1 = 1  # pairwise coupling strength
-    k2s = np.arange(0, 4.5, 0.5)  # triplet coupling strength
+    k2s = np.arange(0, 4.5, 0.25)  # triplet coupling strength
     omega = 0  # 1 * np.ones(N)  # np.random.normal(size=N) #1 * np.ones(N)
 
     ic = "random"  # initial condition type, see below
@@ -196,7 +195,7 @@ if __name__ == "__main__":
     with multiprocessing.Pool(processes=args.num_threads) as pool:
         results = []
         for i, k2 in enumerate(k2s):
-            args = (links, triangles)
+            args = (r1, )
 
             results.append(
                 pool.apply_async(
@@ -211,7 +210,7 @@ if __name__ == "__main__":
                         dt,
                         ic,
                         noise,
-                        rhs_23_sym,  # change rhs here
+                        rhs_ring_harmonics_nb,  # change rhs here
                         integrator,
                         args,
                         t_eval,
