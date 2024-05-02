@@ -109,7 +109,7 @@ def identify_k_clusters(thetas, k, t, atol=1e-2):
     psi = np.sort(psi)
 
     diff = np.diff(psi)
-    idcs = np.where(diff > dist / 2)[0]
+    idcs = np.where(diff >= 0.45 * dist)[0]
 
     clusters = []
     n_changes = len(idcs)

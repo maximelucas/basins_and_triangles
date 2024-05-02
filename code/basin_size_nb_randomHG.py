@@ -89,9 +89,9 @@ def simulate_iteration(
         state = identify_state(thetas)
 
         if (
-            (j <= 5)
+            (j <= 2)
             or (("cluster" in state) and (cluster_save_count <= 2))
-            or (("other" in state and other_save_count <= 5))
+            or (("other" in state and other_save_count <= 2))
         ):
             #plot_sync(thetas, times, axs=axs)
 
@@ -147,9 +147,14 @@ if __name__ == "__main__":
         "-i", "--integrator", type=str, default="RK45", help="ODE integrator"
     )
 
+    parser.add_argument(
+        "-s", "--seed", type=int, default=42, help="Seed for the random hypergraph generator"
+    )
+
     args = parser.parse_args()
 
     n_reps = args.n_reps  # number of random realisations
+    seed = args.seed
 
     # generate structure
     N = 83
@@ -161,12 +166,12 @@ if __name__ == "__main__":
 
     suffix = f"ring_r_{r1}_sym"  # "SC"
 
-    H = xgi.trivial_hypergraph(N)
-    #ps = 20 * np.array([1 / N, 1 / N**2])
-    #H = xgi.random_hypergraph(N, ps, seed=42)
+    #H = xgi.trivial_hypergraph(N)
+    ps = 20 * np.array([1 / N, 1 / N**2])
+    H = xgi.random_hypergraph(N, ps, seed=seed)
 
-    #links = H.edges.filterby("size", 2).members()
-    #triangles = H.edges.filterby("size", 3).members()
+    links = H.edges.filterby("size", 2).members()
+    triangles = H.edges.filterby("size", 3).members()
 
     # define parameters
 
@@ -187,7 +192,7 @@ if __name__ == "__main__":
     integrator = args.integrator
     options = {"atol": 1e-8, "rtol": 1e-8}
 
-    tag_params = f"k1_{k1}_k2s_ic_{ic}_tend_{t_end}_nreps_{n_reps}_{suffix}"
+    tag_params = f"k1_{k1}_k2s_ic_{ic}_tend_{t_end}_nreps_{n_reps}_{suffix}_seed_{seed}"
 
     # create directory for this run
     run_dir = f"{results_dir}run_{tag_params}/"
@@ -207,7 +212,7 @@ if __name__ == "__main__":
     with multiprocessing.Pool(processes=args.num_threads) as pool:
         results = []
         for i, k2 in enumerate(k2s):
-            args = (r1, r2)
+            args = (links, triangles)
 
             results.append(
                 pool.apply_async(
@@ -222,7 +227,7 @@ if __name__ == "__main__":
                         dt,
                         ic,
                         noise,
-                        rhs_ring_nb,  # change rhs here
+                        rhs_23_sym,  # change rhs here
                         integrator,
                         args,
                         t_eval,
