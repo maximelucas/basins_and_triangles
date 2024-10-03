@@ -5,7 +5,10 @@
 This repository contains the code used for the analysis presented in the paper:  
 "Deeper but smaller: Higher-order interactions increase linear stability but shrink basins",  
 by Y. Zhang, P. S. Skardal, F. Battiston, G. Petri, and M. Lucas  
-[arXiv:2309.16581](https://arxiv.org/abs/2309.16581) (2023)
+
+[*Sci. Adv.* **10**, eado8049](https://doi.org/10.1126/sciadv.ado8049) (2024)
+
+
 
 <img src="https://github.com/maximelucas/basins_and_triangles/assets/7493360/b6b1ecb4-95a7-4662-93bd-ecd7fa002fea" width="45%">
 
